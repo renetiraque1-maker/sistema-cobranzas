@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Sistema Local de Cobranzas</title>
+    <!-- Librerías para PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS (UMD) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <style>
+        /* ====== ESTILOS (los mismos que ya tenías, no los repito para no alargar) ====== */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #e8f0f8 0%, #d4e4f0 100%); min-height: 100vh; padding: 15px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 16px; box-shadow: 0 8px 40px rgba(0,0,0,0.12); }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #eef2f5; padding-bottom: 15px; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .header-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .header-left h2 { color: #0f4c5c; margin: 0; font-size: 20px; display: flex; align-items: center; gap: 8px; }
+        .header-left h2 i { color: #2a9d8f; }
+        .user-info { display: flex; align-items: center; gap: 8px; color: #475569; font-size: 13px; flex-wrap: wrap; }
+        .user-info .email { font-weight: 600; color: #0f4c5c; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { font-size: 10px; font-weight: 700; margin-bottom: 4px; color: #334155; text-transform: uppercase; letter-spacing: 0.3px; }
+        .form-group input { padding: 8px 10px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; transition: border-color 0.3s; background: white; width: 100%; }
+        .form-group input:focus { border-color: #2a9d8f; box-shadow: 0 0 0 3px rgba(42,157,143,0.15); }
+        .form-group input[readonly] { background-color: #f8fafc; color: #475569; border-color: #e2e8f0; }
+        .search-container { background: linear-gradient(135deg, #e8f5f3 0%, #d4ece8 100%); padding: 15px; border-radius: 12px; border: 1px solid #b2dfdb; margin-bottom: 20px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; transition: all 0.3s; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .btn:active { transform: translateY(0); }
+        .btn-primary { background: #0f4c5c; color: white; }
+        .btn-primary:hover { background: #0a3641; }
+        .btn-success { background: #2a9d8f; color: white; }
+        .btn-success:hover { background: #218276; }
+        .btn-danger { background: #e76f51; color: white; }
+        .btn-danger:hover { background: #d35400; }
+        .btn-whatsapp { background: #25D366; color: white; }
+        .btn-whatsapp:hover { background: #1da851; }
+        .btn-info { background: #1a73e8; color: white; }
+        .btn-info:hover { background: #1557b0; }
+        .btn-warning { background: #e67e22; color: white; }
+        .btn-warning:hover { background: #d35400; }
+        .btn-small { padding: 4px 10px; font-size: 10px; }
+        .btn-sm { padding: 5px 12px; font-size: 11px; }
+        .btn-block { width: 100%; justify-content: center; }
+        .table-container { margin-top: 20px; border-top: 2px solid #eef2f5; padding-top: 15px; }
+        .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+        .table-header h3 { display: flex; align-items: center; gap: 8px; color: #0f4c5c; font-size: 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th, td { padding: 8px 6px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { background-color: #f1f5f9; color: #334155; font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: 0.3px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.7); justify-content: center; align-items: center; z-index: 1000; padding: 10px; backdrop-filter: blur(4px); }
+        .modal-content { background: white; padding: 20px; border-radius: 16px; width: 750px; max-width: 100%; max-height: 90vh; overflow-y: auto; animation: modalIn 0.3s ease; }
+        @keyframes modalIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-content h3 { margin-top: 0; border-bottom: 2px solid #eef2f5; padding-bottom: 10px; display: flex; align-items: center; gap: 10px; color: #0f4c5c; font-size: 18px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 600; }
+        .badge-success { background: #d4edda; color: #155724; }
+        .badge-danger { background: #f8d7da; color: #721c24; }
+        .badge-warning { background: #fff3cd; color: #856404; }
+        .badge-info { background: #d1ecf1; color: #0c5460; }
+        .action-buttons { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+        .action-buttons .btn { padding: 3px 8px; font-size: 10px; }
+        .panel-resumen { display: none; background: linear-gradient(135deg, #0f4c5c 0%, #1a6b7a 100%); border-radius: 12px; padding: 15px; margin: 15px 0; color: white; }
+        .panel-resumen .resumen-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .panel-resumen .resumen-header h4 { margin: 0; color: #fff; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+        .panel-resumen .resumen-header h4 i { color: #2a9d8f; }
+        .panel-resumen .resumen-sub { margin: 2px 0 0 0; opacity: 0.8; font-size: 11px; }
+        .panel-resumen .resumen-stats { display: flex; gap: 15px; flex-wrap: wrap; }
+        .panel-resumen .resumen-stats .stat { text-align: center; }
+        .panel-resumen .resumen-stats .stat .numero { font-size: 18px; font-weight: bold; }
+        .panel-resumen .resumen-stats .stat .label { font-size: 9px; opacity: 0.8; }
+        .panel-resumen .barra-progreso { margin-top: 10px; background: rgba(255,255,255,0.2); border-radius: 10px; height: 6px; overflow: hidden; }
+        .panel-resumen .barra-progreso .barra { height: 100%; background: #2a9d8f; border-radius: 10px; width: 0%; transition: width 0.5s ease; }
+        .panel-resumen .badge { font-size: 12px; padding: 4px 12px; }
+        #reciboCartaPDF, #extractoPDF, #reportePDF { position: absolute; left: -9999px; top: 0; width: 750px; padding: 30px; background: white; font-family: 'Times New Roman', Arial, serif; font-size: 12px; color: #000; line-height: 1.5; z-index: -1; }
+        .pdf-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 15px; }
+        .pdf-logo { display: flex; align-items: center; }
+        .pdf-logo img { height: 70px; margin-right: 10px; object-fit: contain; }
+        .pdf-logo-text { font-size: 14px; font-weight: bold; color: #0d47a1; }
+        .pdf-title { text-align: right; }
+        .pdf-title h3 { margin: 5px 0; font-size: 16px; color: #d32f2f; font-weight: bold; }
+        .pdf-title p { margin: 3px 0; font-size: 13px; }
+        .pdf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0; }
+        .pdf-box { border: 1px solid #555; padding: 10px; border-radius: 4px; background: #fafafa; }
+        .pdf-box p { margin: 4px 0; font-size: 12px; }
+        .pdf-box strong { font-weight: bold; }
+        .pdf-concepto { margin: 15px 0; font-weight: bold; font-size: 13px; }
+        .pdf-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        .pdf-table th, .pdf-table td { border: 1px solid #333; padding: 8px; text-align: left; font-size: 12px; }
+        .pdf-table th { background: #f0f0f0; font-weight: bold; text-align: center; }
+        .pdf-table .text-center { text-align: center; }
+        .pdf-table .text-right { text-align: right; }
+        .pdf-detalle { margin-top: 15px; border: 1px solid #555; padding: 12px 15px; border-radius: 4px; background: #fafafa; }
+        .pdf-detalle p { margin: 5px 0; font-size: 12px; }
+        .pdf-firmas { margin-top: 50px; display: flex; justify-content: space-around; text-align: center; padding: 0 20px; }
+        .pdf-firma { border-top: 1px solid #000; width: 200px; padding-top: 8px; font-size: 12px; font-weight: bold; }
+        .pdf-footer { margin-top: 30px; font-size: 10px; text-align: center; border-top: 1px solid #555; padding-top: 12px; line-height: 1.6; }
+        .pdf-footer p { margin: 3px 0; }
+        .pdf-footer em { font-style: italic; }
+        .pdf-numero-recibo { font-weight: bold; font-size: 14px; }
+        .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 99999; justify-content: center; align-items: center; flex-direction: column; color: white; backdrop-filter: blur(4px); }
+        .loading-overlay.show { display: flex; }
+        .loading-spinner { border: 4px solid #f3f3f3; border-top: 4px solid #2a9d8f; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .extracto-cliente-info, .reporte-filtros { background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #e2e8f0; }
+        .extracto-cliente-info p { margin: 3px 0; font-size: 13px; }
+        .extracto-tabla, .reporte-tabla { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+        .extracto-tabla th, .reporte-tabla th { background: #0f4c5c; color: white; padding: 6px; text-align: left; }
+        .extracto-tabla td, .reporte-tabla td { padding: 6px; border-bottom: 1px solid #e2e8f0; }
+        .extracto-total, .reporte-total { font-weight: bold; font-size: 14px; text-align: right; padding: 8px; border-top: 2px solid #0f4c5c; margin-top: 8px; }
+        .extracto-acciones, .reporte-acciones { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; flex-wrap: wrap; }
+        .reporte-resumen { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+        .reporte-resumen-item { background: #e0f2f1; padding: 10px; border-radius: 8px; text-align: center; }
+        .reporte-resumen-item .numero { font-size: 20px; font-weight: bold; color: #0f4c5c; }
+        .reporte-resumen-item .label { font-size: 11px; color: #475569; }
+        .filtros-fecha { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+        .filtros-fecha .form-group { flex: 1; min-width: 120px; }
+        .filtros-fecha .form-group label { font-size: 10px; font-weight: 700; color: #334155; text-transform: uppercase; }
+        .filtros-fecha .form-group input { padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; width: 100%; }
+        .input-group { display: flex; gap: 6px; flex-wrap: wrap; }
+        .input-group input { flex: 1; min-width: 120px; }
+        .input-group .btn { white-space: nowrap; }
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .container { padding: 15px; }
+            .grid, .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .header { flex-direction: column; align-items: stretch; }
+            .header-left { justify-content: center; }
+            .header-left h2 { font-size: 18px; }
+            .user-info .email { max-width: 100px; }
+            .reporte-resumen { grid-template-columns: 1fr; }
+            .filtros-fecha { flex-direction: column; }
+            .filtros-fecha .form-group { min-width: 100%; }
+            .panel-resumen .resumen-header { flex-direction: column; align-items: stretch; }
+            .panel-resumen .resumen-stats { justify-content: center; }
+            .modal-content { padding: 15px; }
+            .btn { font-size: 12px; padding: 6px 12px; }
+            .table-container { overflow-x: auto; }
+            table { font-size: 11px; }
+            th, td { padding: 6px 4px; }
+            .action-buttons .btn { font-size: 10px; padding: 3px 8px; }
+        }
+        @media (max-width: 480px) {
+            .container { padding: 10px; }
+            .header-left h2 { font-size: 16px; }
+            .user-info { font-size: 12px; }
+            .user-info .email { max-width: 80px; }
+            .panel-resumen .resumen-stats .stat .numero { font-size: 18px; }
+            .reporte-resumen-item .numero { font-size: 20px; }
+            .btn { font-size: 11px; padding: 5px 10px; }
+            .modal-content { padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LOADING OVERLAY -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <p style="font-size: 18px;">Generando documento, por favor espere...</p>
+    </div>
+
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header">
+            <div class="header-left">
+                <h2><i class="fas fa-coins"></i> Sistema de Cobranzas</h2>
+                <button class="btn btn-warning btn-sm" onclick="abrirReporteGeneral()"><i class="fas fa-chart-bar"></i> Reporte</button>
+            </div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+                <span class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span class="email" id="userEmail">cargando...</span>
+                </span>
+                <button class="btn btn-danger btn-sm" onclick="cerrarSesion()"><i class="fas fa-sign-out-alt"></i> Salir</button>
+                <button class="btn btn-success" onclick="abrirModalCliente()"><i class="fas fa-user-plus"></i> Nuevo Cliente</button>
+            </div>
+        </div>
+
+        <!-- BÚSQUEDA CLIENTE & RECIBO -->
+        <div class="search-container">
+            <div class="grid">
+                <div class="form-group">
+                    <label><i class="fas fa-search"></i> Buscar Cliente (C.I.)</label>
+                    <div class="input-group">
+                        <input type="text" id="buscar_ci" placeholder="Ej: 8780620" onkeypress="if(event.key === 'Enter') buscarCliente();">
+                        <button class="btn btn-primary" onclick="buscarCliente()"><i class="fas fa-search"></i> Buscar</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-receipt"></i> N° Recibo</label>
+                    <input type="text" id="recibo_num" readonly style="font-weight: bold; color: #0f4c5c; font-size: 15px;">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-info-circle"></i> Producto Activo</label>
+                    <input type="text" id="estado_progreso" readonly value="Pendiente de búsqueda">
+                </div>
+            </div>
+        </div>
+
+        <!-- FORMULARIO PAGO -->
+        <div style="background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #e2e8f0;">
+            <h4 style="color: #0f4c5c; margin-bottom: 12px; font-size: 16px;"><i class="fas fa-credit-card"></i> Registrar Pago</h4>
+            <div class="grid-2">
+                <div class="form-group"><label>Cliente</label><input type="text" id="c_nombre" readonly></div>
+                <div class="form-group"><label>Dirección</label><input type="text" id="c_direccion" readonly></div>
+            </div>
+            <div class="grid">
+                <div class="form-group"><label>Equipo</label><input type="text" id="c_equipo" readonly></div>
+                <div class="form-group"><label>Marca / Modelo</label><input type="text" id="c_marca" readonly></div>
+                <div class="form-group"><label>IMEI / Serie</label><input type="text" id="c_imei" readonly></div>
+            </div>
+            <div class="grid">
+                <div class="form-group">
+                    <label>Monto a Pagar (Bs.)</label>
+                    <input type="number" id="c_cuota" oninput="actualizarMontoLiteral(this.value)" placeholder="0.00">
+                </div>
+                <div class="form-group"><label>Mes Afectado</label><input type="text" id="c_mes" placeholder="Ej: mayo"></div>
+                <div class="form-group"><label>Estado / N° Cuota</label><input type="text" id="c_num_cuota" placeholder="Ej: CUOTA INICIAL"></div>
+            </div>
+            <div class="form-group" style="margin-bottom: 8px;">
+                <label>Monto Literal</label>
+                <input type="text" id="c_literal" placeholder="TRESCIENTOS BOLIVIANOS CON 00/100" style="font-style: italic;">
+            </div>
+            <div class="form-group" style="margin-bottom: 10px;">
+                <label>Observaciones</label>
+                <input type="text" id="c_obs" value="Es una cuota de cancelación de equipo">
+            </div>
+            <button class="btn btn-success btn-block" style="padding: 12px; font-size: 15px;" onclick="guardarRecibo()">
+                <i class="fas fa-save"></i> Registrar Pago
+            </button>
+        </div>
+
+        <!-- PANEL DE RESUMEN DEL CLIENTE -->
+        <div class="panel-resumen" id="panelResumen">
+            <div class="resumen-header">
+                <div>
+                    <h4><i class="fas fa-chart-pie"></i> Resumen del Cliente</h4>
+                    <p class="resumen-sub" id="resumen_cliente_nombre"></p>
+                </div>
+                <div class="resumen-stats">
+                    <div class="stat">
+                        <div class="numero" id="resumen_cuotas_pagadas">0/0</div>
+                        <div class="label">Cuotas Pagadas</div>
+                    </div>
+                    <div class="stat">
+                        <div class="numero" id="resumen_total_pagado">0.00 Bs.</div>
+                        <div class="label">Total Pagado</div>
+                    </div>
+                    <div class="stat">
+                        <div class="numero" id="resumen_saldo_pendiente">0.00 Bs.</div>
+                        <div class="label">Saldo Pendiente</div>
+                    </div>
+                    <div class="stat">
+                        <div class="numero" id="resumen_proxima_cuota">-</div>
+                        <div class="label">Próxima Cuota</div>
+                    </div>
+                    <div class="stat">
+                        <span id="resumen_estado" class="badge">-</span>
+                    </div>
+                </div>
+            </div>
+            <div class="barra-progreso">
+                <div class="barra" id="resumen_barra_progreso"></div>
+            </div>
+        </div>
+
+        <!-- HISTORIAL DE PAGOS -->
+        <div class="table-container">
+            <div class="table-header">
+                <h3><i class="fas fa-history"></i> Historial de Pagos</h3>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+                    <button class="btn btn-info btn-sm" onclick="abrirExtracto()" id="btnExtracto" style="display:none;">
+                        <i class="fas fa-file-alt"></i> Extracto
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="eliminarCliente()" id="btnEliminar" style="display:none;">
+                        <i class="fas fa-trash-alt"></i> Inactivar Producto
+                    </button>
+                    <input type="text" id="buscar_historial" placeholder="🔍 Filtrar..." 
+                           onkeyup="filtrarHistorial()" style="padding: 6px 10px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 12px; width: 160px;">
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>N° Recibo</th>
+                        <th>Fecha</th>
+                        <th>Mes</th>
+                        <th>Estado</th>
+                        <th>Monto (Bs.)</th>
+                        <th style="text-align: center;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaHistorial">
+                    <tr><td colspan="6" style="text-align:center; color:#888; padding: 20px;">
+                        <i class="fas fa-search" style="font-size: 20px; display: block; margin-bottom: 6px;"></i>
+                        Ingresa el C.I. arriba para cargar el historial.
+                    </td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ====== MODAL NUEVO CLIENTE ====== -->
+    <div id="modalCliente" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-user-plus"></i> Registrar Nuevo Cliente</h3>
+            <form id="formNuevoCliente" style="margin-top: 15px;">
+                <div class="grid-2">
+                    <div class="form-group"><label>C.I.</label><input type="text" id="nc_ci" required placeholder="Número de identificación"></div>
+                    <div class="form-group"><label>Nombre Completo</label><input type="text" id="nc_nombre" required placeholder="Nombre y apellidos"></div>
+                </div>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label>Dirección</label>
+                    <input type="text" id="nc_direccion" required placeholder="Dirección completa">
+                </div>
+                <div class="grid-3">
+                    <div class="form-group"><label>Equipo</label><input type="text" id="nc_equipo" required placeholder="Tipo de equipo"></div>
+                    <div class="form-group"><label>Marca / Modelo</label><input type="text" id="nc_marca" required placeholder="Marca y modelo"></div>
+                    <div class="form-group"><label>IMEI / Serie</label><input type="text" id="nc_imei" required placeholder="Número de serie o IMEI"></div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group"><label>Total Cuotas</label><input type="number" id="nc_cuotas" required placeholder="Número de cuotas"></div>
+                    <div class="form-group"><label>Fecha Inicio</label><input type="date" id="nc_f_inicio" required></div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group"><label>Monto Cuota (Bs.)</label><input type="number" step="0.01" id="nc_monto" required placeholder="0.00"></div>
+                    <div class="form-group"><label>Fecha Fin</label><input type="date" id="nc_f_fin" required></div>
+                </div>
+                <div class="form-group" style="margin-top: 10px;">
+                    <label style="color: #e67e22; font-weight: 700;">MONTO TOTAL A PAGAR (Bs.)</label>
+                    <input type="number" step="0.01" id="nc_monto_total" required placeholder="0.00" style="border-color: #e67e22; font-weight: bold; font-size: 16px;">
+                    <small style="color: #888; margin-top: 4px;">Ingresa el monto total que el cliente pagará por este producto</small>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eef2f5;">
+                    <button type="button" class="btn btn-danger" onclick="cerrarModalCliente()"><i class="fas fa-times"></i> Cancelar</button>
+                    <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Guardar Cliente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ====== MODAL EXTRACTO ====== -->
+    <div id="modalExtracto" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-file-alt"></i> Extracto de Pagos</h3>
+            <div id="extractoContenido">
+                <div class="extracto-cliente-info" id="extractoClienteInfo">
+                    <p><strong>Cliente:</strong> <span id="ext_cliente"></span></p>
+                    <p><strong>C.I.:</strong> <span id="ext_ci"></span></p>
+                    <p><strong>Dirección:</strong> <span id="ext_direccion"></span></p>
+                    <p><strong>Equipo:</strong> <span id="ext_equipo"></span> - <span id="ext_marca"></span></p>
+                </div>
+                <table class="extracto-tabla" id="extractoTabla">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Recibo</th>
+                            <th>Fecha</th>
+                            <th>Mes</th>
+                            <th>Estado</th>
+                            <th style="text-align:right;">Monto (Bs.)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="extractoTbody"></tbody>
+                </table>
+                <div class="extracto-total">
+                    Total Pagado: <span id="ext_total">0.00</span> Bs.
+                </div>
+                <div class="extracto-acciones">
+                    <button class="btn btn-danger" onclick="cerrarExtracto()"><i class="fas fa-times"></i> Cerrar</button>
+                    <button class="btn btn-whatsapp" onclick="enviarExtractoWhatsApp()"><i class="fab fa-whatsapp"></i> WhatsApp</button>
+                    <button class="btn btn-info" onclick="descargarExtractoPDF()"><i class="fas fa-file-pdf"></i> Descargar PDF</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== MODAL REPORTE GENERAL ====== -->
+    <div id="modalReporte" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-chart-bar"></i> Reporte General de Cobranzas</h3>
+            <div class="reporte-filtros">
+                <div class="filtros-fecha">
+                    <div class="form-group">
+                        <label>Fecha desde</label>
+                        <input type="date" id="reporte_fecha_desde">
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha hasta</label>
+                        <input type="date" id="reporte_fecha_hasta">
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: flex-end; padding-bottom: 2px;">
+                        <button class="btn btn-info btn-sm" onclick="filtrarReporte()"><i class="fas fa-filter"></i> Filtrar</button>
+                        <button class="btn btn-sm" onclick="limpiarFiltrosReporte()" style="background: #95a5a6; color: white;"><i class="fas fa-undo"></i> Limpiar</button>
+                    </div>
+                </div>
+            </div>
+            <div class="reporte-resumen" id="reporteResumen">
+                <div class="reporte-resumen-item">
+                    <div class="numero" id="rep_total_pagos">0</div>
+                    <div class="label">Total Pagos</div>
+                </div>
+                <div class="reporte-resumen-item">
+                    <div class="numero" id="rep_total_monto">0.00</div>
+                    <div class="label">Monto Total (Bs.)</div>
+                </div>
+                <div class="reporte-resumen-item">
+                    <div class="numero" id="rep_clientes">0</div>
+                    <div class="label">Clientes con Pagos</div>
+                </div>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="reporte-tabla" id="reporteTabla">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Recibo</th>
+                            <th>Cliente</th>
+                            <th>CI</th>
+                            <th>Fecha</th>
+                            <th>Mes</th>
+                            <th>Estado</th>
+                            <th style="text-align:right;">Monto (Bs.)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reporteTbody">
+                        <tr><td colspan="8" style="text-align:center; color:#888; padding: 30px;">Cargando datos...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="reporte-total">
+                TOTAL GENERAL: <span id="rep_total_general">0.00</span> Bs.
+            </div>
+            <div class="reporte-acciones">
+                <button class="btn btn-danger" onclick="cerrarReporte()"><i class="fas fa-times"></i> Cerrar</button>
+                <button class="btn btn-whatsapp" onclick="enviarReporteWhatsApp()"><i class="fab fa-whatsapp"></i> WhatsApp</button>
+                <button class="btn btn-info" onclick="descargarReportePDF()"><i class="fas fa-file-pdf"></i> Descargar PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== PLANTILLAS PDF (OCULTAS) ====== -->
+    <div id="reciboCartaPDF">
+        <div class="pdf-header">
+            <div class="pdf-logo"><img src="/logoidn.png" alt="Logo" onerror="this.style.display='none'"><span class="pdf-logo-text">INTEGRACIÓN TECNOLÓGICA</span></div>
+            <div class="pdf-title"><h3>RECIBO DE PAGO DE CUOTA A CRÉDITO</h3><p><strong>Recibo N°:</strong> <span id="p_recibo" class="pdf-numero-recibo"></span></p></div>
+        </div>
+        <div class="pdf-grid">
+            <div class="pdf-box"><p><strong>Cliente:</strong> <span id="p_cliente"></span></p><p><strong>C.I.:</strong> <span id="p_ci"></span></p><p><strong>Dirección:</strong> <span id="p_direccion"></span></p></div>
+            <div class="pdf-box"><p><strong>Equipo:</strong> <span id="p_equipo"></span></p><p><strong>Marca/Modelo:</strong> <span id="p_marca"></span></p><p><strong>IMEI/Serie:</strong> <span id="p_imei"></span></p></div>
+        </div>
+        <p class="pdf-concepto">CONCEPTO: Venta de Equipos Tecnológicos a Crédito</p>
+        <table class="pdf-table">
+            <thead><tr><th style="width:40%;">Detalle / Concepto</th><th style="width:20%;">Mes</th><th style="width:20%;">Estado / Cuota</th><th style="width:20%;">Total Bs.</th></tr></thead>
+            <tbody><tr><td>Cuota correspondiente a crédito contratado</td><td style="text-align:center;"><span id="p_mes"></span></td><td style="text-align:center;"><span id="p_estado"></span></td><td style="text-align:center;font-weight:bold;"><span id="p_monto"></span> Bs.</td></tr></tbody>
+        </table>
+        <div class="pdf-detalle">
+            <p><strong>Monto en Literal:</strong> <span id="p_literal"></span></p>
+            <p><strong>Observaciones:</strong> <span id="p_obs"></span></p>
+            <p><strong>Fecha de Registro:</strong> <span id="p_fecha"></span></p>
+        </div>
+        <div class="pdf-firmas">
+            <div class="pdf-firma">Entregué Conforme</div>
+            <div class="pdf-firma">Recibí Conforme</div>
+        </div>
+        <div class="pdf-footer">
+            <p><strong>Warnes, Santa Cruz, Bolivia | Tel.: 7086212 Lic. Mauricio Ribera | Tel.: 71414917 Lic. Rene Moreira</strong></p>
+            <p><em>En Integración Tecnológica, valoramos que nos permitas acompañarte en tu crecimiento. Este recibo es el respaldo de tu pago.</em></p>
+        </div>
+    </div>
+
+    <div id="extractoPDF">
+        <div class="pdf-header">
+            <div class="pdf-logo"><img src="/logoidn.png" alt="Logo" onerror="this.style.display='none'"><span class="pdf-logo-text">INTEGRACIÓN TECNOLÓGICA</span></div>
+            <div class="pdf-title"><h3>EXTRACTO DE PAGOS</h3><p><strong>Fecha de emisión:</strong> <span id="ext_fecha_emision"></span></p></div>
+        </div>
+        <div class="pdf-grid">
+            <div class="pdf-box"><p><strong>Cliente:</strong> <span id="ext_pdf_cliente"></span></p><p><strong>C.I.:</strong> <span id="ext_pdf_ci"></span></p><p><strong>Dirección:</strong> <span id="ext_pdf_direccion"></span></p></div>
+            <div class="pdf-box"><p><strong>Equipo:</strong> <span id="ext_pdf_equipo"></span></p><p><strong>Marca/Modelo:</strong> <span id="ext_pdf_marca"></span></p><p><strong>Total Pagado:</strong> <span id="ext_pdf_total"></span> Bs.</p></div>
+        </div>
+        <p style="margin:15px 0;font-weight:bold;">DETALLE DE PAGOS REALIZADOS</p>
+        <table class="pdf-table">
+            <thead><tr><th style="width:8%;">#</th><th style="width:15%;">Recibo</th><th style="width:20%;">Fecha</th><th style="width:17%;">Mes</th><th style="width:20%;">Estado</th><th style="width:20%;text-align:right;">Monto (Bs.)</th></tr></thead>
+            <tbody id="extractoPdfTbody"></tbody>
+        </table>
+        <div style="margin-top:15px;text-align:right;font-size:14px;font-weight:bold;padding:10px;border-top:2px solid #000;">
+            TOTAL PAGADO: <span id="ext_pdf_total_final"></span> Bs.
+        </div>
+        <div class="pdf-footer">
+            <p><strong>Warnes, Santa Cruz, Bolivia | Tel.: 7086212 Lic. Mauricio Ribera | Tel.: 71414917 Lic. Rene Moreira</strong></p>
+            <p><em>En Integración Tecnológica, valoramos que nos permitas acompañarte en tu crecimiento. Este extracto es el respaldo de tus pagos.</em></p>
+        </div>
+    </div>
+
+    <div id="reportePDF">
+        <div class="pdf-header">
+            <div class="pdf-logo"><img src="/logoidn.png" alt="Logo" onerror="this.style.display='none'"><span class="pdf-logo-text">INTEGRACIÓN TECNOLÓGICA</span></div>
+            <div class="pdf-title"><h3>REPORTE GENERAL DE COBRANZAS</h3><p><strong>Fecha de emisión:</strong> <span id="rep_fecha_emision"></span></p><p><strong>Periodo:</strong> <span id="rep_periodo"></span></p></div>
+        </div>
+        <div style="margin:15px 0;display:flex;gap:30px;justify-content:center;">
+            <div><strong>Total Pagos:</strong> <span id="rep_pdf_total_pagos"></span></div>
+            <div><strong>Monto Total:</strong> <span id="rep_pdf_total_monto"></span> Bs.</div>
+            <div><strong>Clientes:</strong> <span id="rep_pdf_clientes"></span></div>
+        </div>
+        <p style="margin:15px 0;font-weight:bold;">DETALLE DE TODOS LOS PAGOS</p>
+        <table class="pdf-table">
+            <thead><tr><th style="width:5%;">#</th><th style="width:12%;">Recibo</th><th style="width:22%;">Cliente</th><th style="width:10%;">CI</th><th style="width:15%;">Fecha</th><th style="width:12%;">Mes</th><th style="width:12%;">Estado</th><th style="width:12%;text-align:right;">Monto (Bs.)</th></tr></thead>
+            <tbody id="reportePdfTbody"></tbody>
+        </table>
+        <div style="margin-top:15px;text-align:right;font-size:14px;font-weight:bold;padding:10px;border-top:2px solid #000;">
+            TOTAL GENERAL: <span id="rep_pdf_total_final"></span> Bs.
+        </div>
+        <div class="pdf-footer">
+            <p><strong>Warnes, Santa Cruz, Bolivia | Tel.: 7086212 Lic. Mauricio Ribera | Tel.: 71414917 Lic. Rene Moreira</strong></p>
+            <p><em>En Integración Tecnológica, valoramos que nos permitas acompañarte en tu crecimiento. Este reporte es el respaldo de todas las cobranzas realizadas.</em></p>
+        </div>
+    </div>
+
+    <!-- ====== SCRIPT PRINCIPAL ====== -->
+    <script>
+        // ============================================================
+        // CONFIGURACIÓN SUPABASE (CLIENTE)
+        // ============================================================
+        const SUPABASE_URL = 'https://jzphjuzluogyciyzlkad.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_KJIcDOUmiiaJV-pzZImeCg_o21_C01D';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // ============================================================
+        // AUTENTICACIÓN Y TOKEN
+        // ============================================================
+        function getAccessToken() {
+            return localStorage.getItem('supabaseAccessToken');
+        }
+
+        function getUserEmail() {
+            try {
+                const session = JSON.parse(localStorage.getItem('supabaseSession'));
+                return session?.user?.email || 'Usuario';
+            } catch {
+                return 'Usuario';
+            }
+        }
+
+        document.getElementById('userEmail').textContent = getUserEmail();
+
+        function cerrarSesion() {
+            localStorage.removeItem('supabaseAccessToken');
+            localStorage.removeItem('supabaseSession');
+            window.location.href = '/login.html';
+        }
+
+        (async function checkAuth() {
+            const token = getAccessToken();
+            if (!token) {
+                window.location.href = '/login.html';
+                return;
+            }
+            try {
+                const { data: { user }, error } = await supabaseClient.auth.getUser(token);
+                if (error || !user) {
+                    localStorage.removeItem('supabaseAccessToken');
+                    localStorage.removeItem('supabaseSession');
+                    window.location.href = '/login.html';
+                }
+            } catch (e) {
+                console.error('Error verificando token:', e);
+                window.location.href = '/login.html';
+            }
+        })();
+
+        // ============================================================
+        // FETCH CON AUTENTICACIÓN
+        // ============================================================
+        async function fetchWithAuth(url, options = {}) {
+            const token = getAccessToken();
+            if (!token) {
+                window.location.href = '/login.html';
+                throw new Error('No autenticado');
+            }
+            const headers = {
+                ...options.headers,
+                'Authorization': `Bearer ${token}`
+            };
+            const response = await fetch(url, { ...options, headers });
+            if (response.status === 401) {
+                localStorage.removeItem('supabaseAccessToken');
+                localStorage.removeItem('supabaseSession');
+                window.location.href = '/login.html';
+                throw new Error('Sesión expirada');
+            }
+            return response;
+        }
+
+        // ============================================================
+        // VARIABLES GLOBALES
+        // ============================================================
+        let historialCompleto = [];
+        let datosClienteActual = {};
+        let extractoDatos = {};
+        let reporteDatos = [];
+        let reporteFiltrados = [];
+        let clienteCargadoCI = '';
+        let productoSeleccionadoId = null;
+
+        // ============================================================
+        // INICIALIZACIÓN
+        // ============================================================
+        window.onload = function() {
+            obtenerSiguienteRecibo();
+            colocarMesActual();
+            const hoy = new Date();
+            const hace30 = new Date();
+            hace30.setDate(hoy.getDate() - 30);
+            document.getElementById('reporte_fecha_desde').value = hace30.toISOString().split('T')[0];
+            document.getElementById('reporte_fecha_hasta').value = hoy.toISOString().split('T')[0];
+        };
+
+        // ============================================================
+        // FUNCIONES DE UTILIDAD
+        // ============================================================
+        function numeroALiteral(monto) {
+            monto = parseFloat(monto);
+            if (isNaN(monto) || monto <= 0) return '';
+
+            const entero = Math.floor(monto);
+            const centavos = Math.round((monto - entero) * 100);
+            const strCentavos = (centavos < 10 ? '0' : '') + centavos;
+
+            const Unidades = num => ['', 'UN', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE'][num];
+            const Decenas = num => {
+                const d = Math.floor(num / 10);
+                const u = num % 10;
+                switch (d) {
+                    case 1: return ['DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISEIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE'][u];
+                    case 2: return u === 0 ? 'VEINTE' : 'VEINTI' + Unidades(u);
+                    case 3: return u === 0 ? 'TREINTA' : 'TREINTA Y ' + Unidades(u);
+                    case 4: return u === 0 ? 'CUARENTA' : 'CUARENTA Y ' + Unidades(u);
+                    case 5: return u === 0 ? 'CINCUENTA' : 'CINCUENTA Y ' + Unidades(u);
+                    case 6: return u === 0 ? 'SESENTA' : 'SESENTA Y ' + Unidades(u);
+                    case 7: return u === 0 ? 'SETENTA' : 'SETENTA Y ' + Unidades(u);
+                    case 8: return u === 0 ? 'OCHENTA' : 'OCHENTA Y ' + Unidades(u);
+                    case 9: return u === 0 ? 'NOVENTA' : 'NOVENTA Y ' + Unidades(u);
+                    default: return Unidades(u);
+                }
+            };
+            const Centenas = num => {
+                const c = Math.floor(num / 100);
+                const resto = num % 100;
+                if (num === 100) return 'CIEN';
+                switch (c) {
+                    case 1: return 'CIENTO ' + Decenas(resto);
+                    case 2: return 'DOSCIENTOS ' + Decenas(resto);
+                    case 3: return 'TRESCIENTOS ' + Decenas(resto);
+                    case 4: return 'CUATROCIENTOS ' + Decenas(resto);
+                    case 5: return 'QUINIENTOS ' + Decenas(resto);
+                    case 6: return 'SEISCIENTOS ' + Decenas(resto);
+                    case 7: return 'SETECIENTOS ' + Decenas(resto);
+                    case 8: return 'OCHOCIENTOS ' + Decenas(resto);
+                    case 9: return 'NOVECIENTOS ' + Decenas(resto);
+                    default: return Decenas(resto);
+                }
+            };
+            function convertirGrupo(num) { return num === 0 ? '' : Centenas(num); }
+
+            let miles = Math.floor(entero / 1000);
+            let unidades = entero % 1000;
+            let texto = '';
+            if (miles > 0) {
+                texto += (miles === 1) ? 'MIL ' : convertirGrupo(miles) + ' MIL ';
+            }
+            if (unidades > 0 || entero === 0) {
+                texto += convertirGrupo(unidades);
+            }
+            texto = texto.trim() || 'CERO';
+            return `${texto} CON ${strCentavos}/100 BOLIVIANOS`;
+        }
+
+        function actualizarMontoLiteral(valor) {
+            document.getElementById('c_literal').value = numeroALiteral(valor);
+        }
+
+        function colocarMesActual() {
+            const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+            document.getElementById('c_mes').value = meses[new Date().getMonth()];
+        }
+
+        // ============================================================
+        // CLIENTES Y PRODUCTOS
+        // ============================================================
+        function abrirModalCliente() {
+            document.getElementById('modalCliente').style.display = 'flex';
+            const ci = document.getElementById('buscar_ci').value.trim();
+            if (ci) {
+                fetchWithAuth(`/buscar-cliente/${ci}`)
+                    .then(res => { if (res.ok) return res.json(); return null; })
+                    .then(data => {
+                        if (data) {
+                            document.getElementById('nc_ci').value = ci;
+                            document.getElementById('nc_ci').readOnly = true;
+                            document.getElementById('nc_nombre').value = data.cliente || '';
+                            document.getElementById('nc_direccion').value = data.direccion || '';
+                            document.getElementById('nc_equipo').value = '';
+                            document.getElementById('nc_marca').value = '';
+                            document.getElementById('nc_imei').value = '';
+                            document.getElementById('nc_cuotas').value = '';
+                            document.getElementById('nc_monto').value = '';
+                            document.getElementById('nc_monto_total').value = '';
+                        }
+                    })
+                    .catch(() => {});
+            } else {
+                document.getElementById('nc_ci').readOnly = false;
+                document.getElementById('nc_ci').value = '';
+                document.getElementById('nc_nombre').value = '';
+                document.getElementById('nc_direccion').value = '';
+                document.getElementById('nc_equipo').value = '';
+                document.getElementById('nc_marca').value = '';
+                document.getElementById('nc_imei').value = '';
+                document.getElementById('nc_cuotas').value = '';
+                document.getElementById('nc_monto').value = '';
+                document.getElementById('nc_monto_total').value = '';
+            }
+        }
+
+        function cerrarModalCliente() {
+            document.getElementById('modalCliente').style.display = 'none';
+            document.getElementById('nc_ci').readOnly = false;
+        }
+
+        document.getElementById('formNuevoCliente').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const ci = document.getElementById('nc_ci').value.trim();
+            try {
+                const resExistente = await fetchWithAuth(`/buscar-cliente/${ci}`);
+                let clienteExistente = null;
+                if (resExistente.ok) clienteExistente = await resExistente.json();
+                let nombreCliente = document.getElementById('nc_nombre').value.toUpperCase().trim();
+                if (clienteExistente) {
+                    nombreCliente = clienteExistente.cliente;
+                    if (!confirm(`⚠️ El cliente ${nombreCliente} ya existe.\n\n¿Desea agregar un NUEVO PRODUCTO para este cliente?`)) return;
+                }
+                const nuevo = {
+                    ci: ci,
+                    cliente: nombreCliente,
+                    direccion: document.getElementById('nc_direccion').value.toUpperCase().trim(),
+                    equipo: document.getElementById('nc_equipo').value.toUpperCase().trim(),
+                    marcaModelo: document.getElementById('nc_marca').value.toUpperCase().trim(),
+                    imei: document.getElementById('nc_imei').value.trim(),
+                    totalCuotas: parseInt(document.getElementById('nc_cuotas').value) || 0,
+                    fechaInicio: document.getElementById('nc_f_inicio').value,
+                    fechaFin: document.getElementById('nc_f_fin').value,
+                    cuotaMonto: parseFloat(document.getElementById('nc_monto').value) || 0,
+                    montoTotal: parseFloat(document.getElementById('nc_monto_total').value) || 0
+                };
+                const res = await fetchWithAuth('/agregar-cliente', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(nuevo)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(data.mensaje || '✅ Registrado exitosamente.');
+                    document.getElementById('formNuevoCliente').reset();
+                    cerrarModalCliente();
+                    document.getElementById('buscar_ci').value = nuevo.ci;
+                    buscarCliente();
+                } else {
+                    alert(data.error || 'Error al registrar.');
+                }
+            } catch (err) {
+                alert('Error al conectar con el servidor.');
+                console.error(err);
+            }
+        });
+
+        // ============================================================
+        // BUSCAR CLIENTE
+        // ============================================================
+        async function buscarCliente() {
+            const ci = document.getElementById('buscar_ci').value.trim();
+            if (!ci) return alert('Por favor ingresa un C.I.');
+
+            try {
+                const res = await fetchWithAuth(`/cliente-productos/${ci}`);
+                const productos = await res.json();
+                const productosActivos = productos.filter(p => p.activo !== false);
+
+                if (productosActivos.length === 0) {
+                    alert('Cliente no encontrado o sin productos activos.');
+                    document.getElementById('btnExtracto').style.display = 'none';
+                    document.getElementById('btnEliminar').style.display = 'none';
+                    document.getElementById('panelResumen').style.display = 'none';
+                    return;
+                }
+
+                let productoSeleccionado;
+                if (productosActivos.length > 1) {
+                    let mensaje = '📋 El cliente tiene múltiples productos activos:\n\n';
+                    productosActivos.forEach((p, i) => {
+                        mensaje += `${i + 1}. ${p.equipo} - ${p.marcaModelo}\n`;
+                    });
+                    mensaje += '\nSelecciona el producto a gestionar (1-' + productosActivos.length + '):';
+                    const seleccion = prompt(mensaje);
+                    if (!seleccion) return;
+                    const index = parseInt(seleccion) - 1;
+                    if (isNaN(index) || index < 0 || index >= productosActivos.length) {
+                        alert('Selección inválida.');
+                        return;
+                    }
+                    productoSeleccionado = productosActivos[index];
+                } else {
+                    productoSeleccionado = productosActivos[0];
+                }
+
+                cargarProductoCliente(productoSeleccionado);
+            } catch (err) {
+                alert('Error al conectar con el servidor.');
+                console.error(err);
+            }
+        }
+
+        function cargarProductoCliente(producto) {
+            clienteCargadoCI = producto.ci;
+            datosClienteActual = producto;
+            productoSeleccionadoId = producto.id;
+
+            document.getElementById('c_nombre').value = producto.cliente || '';
+            document.getElementById('c_direccion').value = producto.direccion || '';
+            document.getElementById('c_equipo').value = producto.equipo || '';
+            document.getElementById('c_marca').value = producto.marcaModelo || '';
+            document.getElementById('c_imei').value = producto.imei || '';
+
+            const cuotaMonto = producto.cuotaMonto || '';
+            document.getElementById('c_cuota').value = cuotaMonto;
+            actualizarMontoLiteral(cuotaMonto);
+
+            document.getElementById('estado_progreso').value = `📱 ${producto.equipo} | ${producto.marcaModelo} | Cuotas: ${producto.totalCuotas}`;
+            colocarMesActual();
+            cargarHistorial(producto.ci);
+
+            document.getElementById('btnExtracto').style.display = 'inline-flex';
+            document.getElementById('btnEliminar').style.display = 'inline-flex';
+        }
+
+        // ============================================================
+        // HISTORIAL
+        // ============================================================
+        async function cargarHistorial(ci) {
+            try {
+                const res = await fetchWithAuth(`/historial/${ci}`);
+                historialCompleto = await res.json();
+                const numPagosExistentes = historialCompleto.length;
+                document.getElementById('c_num_cuota').value = (numPagosExistentes === 0) ? 'CUOTA INICIAL' : `CUOTA N° ${numPagosExistentes}`;
+                renderizarTabla(historialCompleto);
+                actualizarResumenCliente();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function renderizarTabla(lista) {
+            const tbody = document.getElementById('tablaHistorial');
+            tbody.innerHTML = '';
+            if (lista.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#888; padding: 20px;">
+                    <i class="fas fa-inbox" style="font-size:20px;display:block;margin-bottom:6px;"></i>No se encontraron registros de pago.</td></tr>`;
+                return;
+            }
+            lista.forEach((item) => {
+                const f = new Date(item.fecha).toLocaleString('es-BO');
+                const itemStr = JSON.stringify(item).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${item.num_recibo || '000000'}</strong></td>
+                        <td>${f}</td>
+                        <td>${item.mes || '-'}</td>
+                        <td><span class="badge badge-info">${item.estadoCuota || '-'}</span></td>
+                        <td><strong>${item.cuota} Bs.</strong></td>
+                        <td>
+                            <div class="action-buttons" style="justify-content:center;">
+                                <button class="btn btn-info btn-small" onclick="generarPDF('${itemStr}')"><i class="fas fa-file-pdf"></i> PDF</button>
+                                <button class="btn btn-whatsapp btn-small" onclick="enviarWhatsApp('${itemStr}')"><i class="fab fa-whatsapp"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function filtrarHistorial() {
+            const texto = document.getElementById('buscar_historial').value.toLowerCase().trim();
+            const filtrados = historialCompleto.filter(item => {
+                const search = `${item.cliente} ${item.ci} ${item.num_recibo} ${item.mes} ${item.estadoCuota}`.toLowerCase();
+                return search.includes(texto);
+            });
+            renderizarTabla(filtrados);
+        }
+
+        // ============================================================
+        // RESUMEN CLIENTE
+        // ============================================================
+        function actualizarResumenCliente() {
+            const panel = document.getElementById('panelResumen');
+            if (!clienteCargadoCI || historialCompleto.length === 0 || !datosClienteActual || !datosClienteActual.totalCuotas) {
+                panel.style.display = 'none';
+                return;
+            }
+            const totalCuotas = datosClienteActual.totalCuotas;
+            const pagosRealizados = historialCompleto.length;
+            const totalPagado = historialCompleto.reduce((sum, item) => sum + (parseFloat(item.cuota) || 0), 0);
+            const montoTotal = parseFloat(datosClienteActual.montoTotal) || 0;
+            const saldoPendiente = montoTotal - totalPagado;
+
+            let proximaCuota = '-', estado = '', estadoClase = '';
+            if (pagosRealizados === 0) {
+                proximaCuota = 'Cuota Inicial';
+                estado = '🔴 Sin pagos';
+                estadoClase = 'badge-danger';
+            } else if (pagosRealizados < totalCuotas) {
+                proximaCuota = `Cuota N° ${pagosRealizados + 1}`;
+                const hoy = new Date();
+                const fechaInicio = new Date(datosClienteActual.fechaInicio);
+                const mesesTranscurridos = (hoy.getFullYear() - fechaInicio.getFullYear()) * 12 + (hoy.getMonth() - fechaInicio.getMonth());
+                const cuotasEsperadas = Math.min(mesesTranscurridos + 1, totalCuotas);
+                if (pagosRealizados >= cuotasEsperadas) {
+                    estado = '✅ Al día';
+                    estadoClase = 'badge-success';
+                } else {
+                    estado = '⚠️ Atrasado';
+                    estadoClase = 'badge-danger';
+                }
+            } else {
+                proximaCuota = '✅ Completado';
+                estado = '✅ Pagado';
+                estadoClase = 'badge-success';
+            }
+
+            document.getElementById('resumen_cliente_nombre').textContent = `${datosClienteActual.cliente} - ${datosClienteActual.equipo}`;
+            document.getElementById('resumen_cuotas_pagadas').textContent = `${pagosRealizados}/${totalCuotas}`;
+            document.getElementById('resumen_total_pagado').textContent = `${totalPagado.toFixed(2)} Bs.`;
+            document.getElementById('resumen_saldo_pendiente').textContent = `${saldoPendiente.toFixed(2)} Bs.`;
+            document.getElementById('resumen_proxima_cuota').textContent = proximaCuota;
+            const estadoBadge = document.getElementById('resumen_estado');
+            estadoBadge.textContent = estado;
+            estadoBadge.className = `badge ${estadoClase}`;
+            const porcentaje = totalCuotas > 0 ? (pagosRealizados / totalCuotas) * 100 : 0;
+            document.getElementById('resumen_barra_progreso').style.width = `${Math.min(porcentaje, 100)}%`;
+            panel.style.display = 'block';
+        }
+
+        // ============================================================
+        // ELIMINAR PRODUCTO
+        // ============================================================
+        async function eliminarCliente() {
+            if (!productoSeleccionadoId) {
+                alert('Primero selecciona un producto para inactivar.');
+                return;
+            }
+            const nombre = document.getElementById('c_nombre').value;
+            const equipo = document.getElementById('c_equipo').value;
+            if (!confirm(`⚠️ ¿Estás seguro de INACTIVAR el producto "${equipo}" del cliente "${nombre}"?\n\nEl producto quedará como inactivo pero el historial se conservará.\n\n¡Esta acción se puede deshacer!`)) return;
+
+            try {
+                const res = await fetchWithAuth(`/eliminar-cliente/${productoSeleccionadoId}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(`✅ Producto "${equipo}" marcado como inactivo.`);
+                    document.getElementById('buscar_ci').value = clienteCargadoCI;
+                    buscarCliente();
+                } else {
+                    alert(data.error || 'Error al inactivar el producto.');
+                }
+            } catch (err) {
+                alert('Error al conectar con el servidor.');
+                console.error(err);
+            }
+        }
+
+        // ============================================================
+        // RECIBOS
+        // ============================================================
+        async function obtenerSiguienteRecibo() {
+            try {
+                const res = await fetchWithAuth('/siguiente-recibo');
+                const data = await res.json();
+                document.getElementById('recibo_num').value = data.siguiente || '000100';
+            } catch (e) {
+                console.error('Error al obtener recibo:', e);
+                document.getElementById('recibo_num').value = '000100';
+            }
+        }
+
+        async function guardarRecibo() {
+            const ci = document.getElementById('buscar_ci').value.trim();
+            if (!ci || !document.getElementById('c_nombre').value) return alert('Busca un cliente primero.');
+            const numRecibo = document.getElementById('recibo_num').value;
+            if (!numRecibo || numRecibo === '000000') return alert('Espera a que se genere el número de recibo.');
+
+            const payload = {
+                num_recibo: numRecibo,
+                cliente: document.getElementById('c_nombre').value,
+                ci: ci,
+                direccion: document.getElementById('c_direccion').value,
+                equipo: document.getElementById('c_equipo').value,
+                marcaModelo: document.getElementById('c_marca').value,
+                imei: document.getElementById('c_imei').value,
+                cuota: document.getElementById('c_cuota').value,
+                mes: document.getElementById('c_mes').value,
+                estadoCuota: document.getElementById('c_num_cuota').value,
+                montoLiteral: document.getElementById('c_literal').value,
+                observaciones: document.getElementById('c_obs').value,
+                productoId: productoSeleccionadoId
+            };
+
+            try {
+                const res = await fetchWithAuth('/guardar-recibo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(data.mensaje || '✅ Pago registrado exitosamente.');
+                    obtenerSiguienteRecibo();
+                    cargarHistorial(ci);
+                } else {
+                    alert(data.error || 'Error al guardar el pago.');
+                }
+            } catch (err) {
+                alert('Error al conectar con el servidor.');
+                console.error(err);
+            }
+        }
+
+        // ============================================================
+        // EXTRACTO
+        // ============================================================
+        function abrirExtracto() {
+            if (historialCompleto.length === 0) return alert('Este cliente no tiene pagos registrados.');
+            const cliente = document.getElementById('c_nombre').value;
+            const ci = document.getElementById('buscar_ci').value.trim();
+            const direccion = document.getElementById('c_direccion').value;
+            const equipo = document.getElementById('c_equipo').value;
+            const marca = document.getElementById('c_marca').value;
+
+            document.getElementById('ext_cliente').textContent = cliente;
+            document.getElementById('ext_ci').textContent = ci;
+            document.getElementById('ext_direccion').textContent = direccion || '-';
+            document.getElementById('ext_equipo').textContent = equipo || '-';
+            document.getElementById('ext_marca').textContent = marca || '-';
+
+            const tbody = document.getElementById('extractoTbody');
+            tbody.innerHTML = '';
+            let total = 0;
+            historialCompleto.forEach((item, index) => {
+                const f = new Date(item.fecha).toLocaleDateString('es-BO');
+                const monto = parseFloat(item.cuota) || 0;
+                total += monto;
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${item.num_recibo || '000000'}</td>
+                        <td>${f}</td>
+                        <td>${item.mes || '-'}</td>
+                        <td>${item.estadoCuota || '-'}</td>
+                        <td style="text-align:right;">${monto.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+            document.getElementById('ext_total').textContent = total.toFixed(2);
+            extractoDatos = { cliente, ci, direccion, equipo, marca, total: total.toFixed(2), pagos: historialCompleto };
+            document.getElementById('modalExtracto').style.display = 'flex';
+        }
+
+        function cerrarExtracto() {
+            document.getElementById('modalExtracto').style.display = 'none';
+        }
+
+        function enviarExtractoWhatsApp() {
+            const { cliente, ci, total, pagos } = extractoDatos;
+            let mensaje = `*INTEGRACIÓN TECNOLÓGICA - EXTRACTO DE PAGOS*%0A%0A*Cliente:* ${cliente}%0A*C.I.:* ${ci}%0A%0A*DETALLE DE PAGOS:*%0A`;
+            pagos.forEach((item, index) => {
+                const monto = parseFloat(item.cuota) || 0;
+                mensaje += `%0A${index + 1}. Recibo: ${item.num_recibo || '000000'} | Mes: ${item.mes || '-'} | Monto: ${monto.toFixed(2)} Bs.`;
+            });
+            mensaje += `%0A%0A*TOTAL PAGADO: ${total} Bs.*%0A%0A_¡Gracias por su confianza!_`;
+            window.open(`https://api.whatsapp.com/send?text=${mensaje}`, '_blank');
+        }
+
+        function descargarExtractoPDF() {
+            const { cliente, ci, direccion, equipo, marca, total, pagos } = extractoDatos;
+            document.getElementById('ext_pdf_cliente').textContent = cliente;
+            document.getElementById('ext_pdf_ci').textContent = ci;
+            document.getElementById('ext_pdf_direccion').textContent = direccion || '-';
+            document.getElementById('ext_pdf_equipo').textContent = equipo || '-';
+            document.getElementById('ext_pdf_marca').textContent = marca || '-';
+            document.getElementById('ext_pdf_total').textContent = total;
+            document.getElementById('ext_pdf_total_final').textContent = total;
+            document.getElementById('ext_fecha_emision').textContent = new Date().toLocaleString('es-BO');
+
+            const tbody = document.getElementById('extractoPdfTbody');
+            tbody.innerHTML = '';
+            pagos.forEach((item, index) => {
+                const f = new Date(item.fecha).toLocaleDateString('es-BO');
+                const monto = parseFloat(item.cuota) || 0;
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="text-center">${index + 1}</td>
+                        <td class="text-center">${item.num_recibo || '000000'}</td>
+                        <td class="text-center">${f}</td>
+                        <td class="text-center">${item.mes || '-'}</td>
+                        <td class="text-center">${item.estadoCuota || '-'}</td>
+                        <td class="text-right">${monto.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+            document.getElementById('loadingOverlay').classList.add('show');
+            const elemento = document.getElementById('extractoPDF');
+            setTimeout(() => {
+                html2canvas(elemento, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', width: 750, height: elemento.scrollHeight, windowHeight: elemento.scrollHeight, logging: false })
+                    .then(canvas => {
+                        const { jsPDF } = window.jspdf;
+                        const pdf = new jsPDF({ unit: 'mm', format: 'letter', orientation: 'portrait' });
+                        const imgWidth = 210, pageHeight = 297;
+                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                        let heightLeft = imgHeight, position = 0;
+                        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pageHeight;
+                        while (heightLeft > 0) {
+                            position = heightLeft - imgHeight;
+                            pdf.addPage();
+                            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                            heightLeft -= pageHeight;
+                        }
+                        pdf.save(`Extracto_${cliente.replace(/\s+/g, '_')}.pdf`);
+                        document.getElementById('loadingOverlay').classList.remove('show');
+                    })
+                    .catch(error => {
+                        console.error('Error en html2canvas:', error);
+                        alert('Error al generar el PDF.');
+                        document.getElementById('loadingOverlay').classList.remove('show');
+                    });
+            }, 500);
+        }
+
+        // ============================================================
+        // REPORTE GENERAL
+        // ============================================================
+        async function abrirReporteGeneral() {
+            document.getElementById('loadingOverlay').classList.add('show');
+            try {
+                const res = await fetchWithAuth('/todas-cobranzas');
+                reporteDatos = await res.json();
+                if (!reporteDatos || reporteDatos.length === 0) {
+                    alert('No hay registros de cobranzas para mostrar.');
+                    document.getElementById('loadingOverlay').classList.remove('show');
+                    return;
+                }
+                reporteDatos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+                filtrarReporte();
+                document.getElementById('modalReporte').style.display = 'flex';
+            } catch (error) {
+                console.error('Error al cargar reporte:', error);
+                alert('Error al cargar los datos del reporte.');
+            }
+            document.getElementById('loadingOverlay').classList.remove('show');
+        }
+
+        function cerrarReporte() {
+            document.getElementById('modalReporte').style.display = 'none';
+        }
+
+        function filtrarReporte() {
+            const desde = document.getElementById('reporte_fecha_desde').value;
+            const hasta = document.getElementById('reporte_fecha_hasta').value;
+            reporteFiltrados = reporteDatos.filter(item => {
+                if (!item.fecha) return true;
+                const fechaStr = new Date(item.fecha).toISOString().split('T')[0];
+                if (desde && fechaStr < desde) return false;
+                if (hasta && fechaStr > hasta) return false;
+                return true;
+            });
+            mostrarReporte();
+        }
+
+        function limpiarFiltrosReporte() {
+            const hoy = new Date();
+            const hace30 = new Date();
+            hace30.setDate(hoy.getDate() - 30);
+            document.getElementById('reporte_fecha_desde').value = hace30.toISOString().split('T')[0];
+            document.getElementById('reporte_fecha_hasta').value = hoy.toISOString().split('T')[0];
+            filtrarReporte();
+        }
+
+        function mostrarReporte() {
+            const tbody = document.getElementById('reporteTbody');
+            tbody.innerHTML = '';
+            let totalMonto = 0;
+            const clientesSet = new Set();
+            if (reporteFiltrados.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#888; padding: 30px;">No hay registros en el periodo seleccionado.</td></tr>';
+            } else {
+                reporteFiltrados.forEach((item, index) => {
+                    const f = new Date(item.fecha).toLocaleDateString('es-BO');
+                    const monto = parseFloat(item.cuota) || 0;
+                    totalMonto += monto;
+                    if (item.ci) clientesSet.add(item.ci);
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${item.num_recibo || '000000'}</td>
+                            <td>${item.cliente || '-'}</td>
+                            <td>${item.ci || '-'}</td>
+                            <td>${f}</td>
+                            <td>${item.mes || '-'}</td>
+                            <td>${item.estadoCuota || '-'}</td>
+                            <td style="text-align:right;">${monto.toFixed(2)}</td>
+                        </tr>
+                    `;
+                });
+            }
+            document.getElementById('rep_total_pagos').textContent = reporteFiltrados.length;
+            document.getElementById('rep_total_monto').textContent = totalMonto.toFixed(2);
+            document.getElementById('rep_clientes').textContent = clientesSet.size;
+            document.getElementById('rep_total_general').textContent = totalMonto.toFixed(2);
+        }
+
+        function enviarReporteWhatsApp() {
+            if (reporteFiltrados.length === 0) return alert('No hay datos para enviar.');
+            let totalMonto = 0;
+            let mensaje = `*INTEGRACIÓN TECNOLÓGICA - REPORTE DE COBRANZAS*%0A%0A*Fecha:* ${new Date().toLocaleDateString('es-BO')}%0A*Total Pagos:* ${reporteFiltrados.length}`;
+            reporteFiltrados.forEach(item => { totalMonto += parseFloat(item.cuota) || 0; });
+            mensaje += `%0A*Monto Total:* ${totalMonto.toFixed(2)} Bs.%0A%0A*RESUMEN DE PAGOS:*%0A`;
+            reporteFiltrados.forEach((item, index) => {
+                const monto = parseFloat(item.cuota) || 0;
+                mensaje += `%0A${index + 1}. ${item.num_recibo || '000000'} | ${item.cliente || '-'} | ${item.mes || '-'} | ${monto.toFixed(2)} Bs.`;
+            });
+            mensaje += `%0A%0A*TOTAL: ${totalMonto.toFixed(2)} Bs.*`;
+            window.open(`https://api.whatsapp.com/send?text=${mensaje}`, '_blank');
+        }
+
+        function descargarReportePDF() {
+            if (reporteFiltrados.length === 0) return alert('No hay datos para generar el PDF.');
+            let totalMonto = 0;
+            const clientesSet = new Set();
+            document.getElementById('rep_fecha_emision').textContent = new Date().toLocaleString('es-BO');
+            const desde = document.getElementById('reporte_fecha_desde').value;
+            const hasta = document.getElementById('reporte_fecha_hasta').value;
+            document.getElementById('rep_periodo').textContent = `${desde || 'Inicio'} - ${hasta || 'Actualidad'}`;
+
+            const tbody = document.getElementById('reportePdfTbody');
+            tbody.innerHTML = '';
+            reporteFiltrados.forEach((item, index) => {
+                const f = new Date(item.fecha).toLocaleDateString('es-BO');
+                const monto = parseFloat(item.cuota) || 0;
+                totalMonto += monto;
+                if (item.ci) clientesSet.add(item.ci);
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="text-center">${index + 1}</td>
+                        <td class="text-center">${item.num_recibo || '000000'}</td>
+                        <td>${item.cliente || '-'}</td>
+                        <td class="text-center">${item.ci || '-'}</td>
+                        <td class="text-center">${f}</td>
+                        <td class="text-center">${item.mes || '-'}</td>
+                        <td class="text-center">${item.estadoCuota || '-'}</td>
+                        <td class="text-right">${monto.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+            document.getElementById('rep_pdf_total_pagos').textContent = reporteFiltrados.length;
+            document.getElementById('rep_pdf_total_monto').textContent = totalMonto.toFixed(2);
+            document.getElementById('rep_pdf_clientes').textContent = clientesSet.size;
+            document.getElementById('rep_pdf_total_final').textContent = totalMonto.toFixed(2);
+
+            document.getElementById('loadingOverlay').classList.add('show');
+            const elemento = document.getElementById('reportePDF');
+            setTimeout(() => {
+                html2canvas(elemento, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', width: 750, height: elemento.scrollHeight, windowHeight: elemento.scrollHeight, logging: false })
+                    .then(canvas => {
+                        const { jsPDF } = window.jspdf;
+                        const pdf = new jsPDF({ unit: 'mm', format: 'letter', orientation: 'portrait' });
+                        const imgWidth = 210, pageHeight = 297;
+                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                        let heightLeft = imgHeight, position = 0;
+                        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pageHeight;
+                        while (heightLeft > 0) {
+                            position = heightLeft - imgHeight;
+                            pdf.addPage();
+                            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                            heightLeft -= pageHeight;
+                        }
+                        pdf.save(`Reporte_Cobranzas_${new Date().toISOString().split('T')[0]}.pdf`);
+                        document.getElementById('loadingOverlay').classList.remove('show');
+                    })
+                    .catch(error => {
+                        console.error('Error en html2canvas:', error);
+                        alert('Error al generar el PDF.');
+                        document.getElementById('loadingOverlay').classList.remove('show');
+                    });
+            }, 500);
+        }
+
+        // ============================================================
+        // PDF DE RECIBO INDIVIDUAL
+        // ============================================================
+        function generarPDF(itemStr) {
+            try {
+                const item = JSON.parse(itemStr);
+                document.getElementById('loadingOverlay').classList.add('show');
+                document.getElementById('p_recibo').innerText = item.num_recibo || '000000';
+                document.getElementById('p_cliente').innerText = item.cliente || '';
+                document.getElementById('p_ci').innerText = item.ci || '';
+                document.getElementById('p_direccion').innerText = item.direccion || '-';
+                document.getElementById('p_equipo').innerText = item.equipo || '-';
+                document.getElementById('p_marca').innerText = item.marcaModelo || '-';
+                document.getElementById('p_imei').innerText = item.imei || '-';
+                document.getElementById('p_mes').innerText = item.mes || '-';
+                document.getElementById('p_estado').innerText = item.estadoCuota || '-';
+                document.getElementById('p_monto').innerText = item.cuota || '0';
+                document.getElementById('p_literal').innerText = item.montoLiteral || '-';
+                document.getElementById('p_obs').innerText = item.observaciones || '-';
+                const fecha = new Date(item.fecha);
+                const dia = fecha.getDate(), mes = fecha.getMonth()+1, anio = fecha.getFullYear();
+                let horas = fecha.getHours();
+                const minutos = String(fecha.getMinutes()).padStart(2,'0');
+                const segundos = String(fecha.getSeconds()).padStart(2,'0');
+                const ampm = horas >= 12 ? 'p. m.' : 'a. m.';
+                horas = horas % 12 || 12;
+                document.getElementById('p_fecha').innerText = `${dia}/${mes}/${anio}, ${horas}:${minutos}:${segundos} ${ampm}`;
+
+                const elemento = document.getElementById('reciboCartaPDF');
+                setTimeout(() => {
+                    html2canvas(elemento, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', width: 750, height: elemento.scrollHeight, windowHeight: elemento.scrollHeight, logging: false })
+                        .then(canvas => {
+                            const { jsPDF } = window.jspdf;
+                            const pdf = new jsPDF({ unit: 'mm', format: 'letter', orientation: 'portrait' });
+                            const imgWidth = 210, pageHeight = 297;
+                            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                            let heightLeft = imgHeight, position = 0;
+                            const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                            heightLeft -= pageHeight;
+                            while (heightLeft > 0) {
+                                position = heightLeft - imgHeight;
+                                pdf.addPage();
+                                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                                heightLeft -= pageHeight;
+                            }
+                            pdf.save(`Recibo_${item.num_recibo || '000000'}_${(item.cliente || '').replace(/\s+/g, '_')}.pdf`);
+                            document.getElementById('loadingOverlay').classList.remove('show');
+                        })
+                        .catch(error => {
+                            console.error('Error en html2canvas:', error);
+                            alert('Error al generar el PDF.');
+                            document.getElementById('loadingOverlay').classList.remove('show');
+                        });
+                }, 500);
+            } catch (e) {
+                console.error('Error:', e);
+                alert('Error al procesar los datos del recibo.');
+                document.getElementById('loadingOverlay').classList.remove('show');
+            }
+        }
+
+        function enviarWhatsApp(itemStr) {
+            try {
+                const item = JSON.parse(itemStr);
+                const texto = `*INTEGRACIÓN TECNOLÓGICA - COMPROBANTE DE PAGO*%0A` +
+                    `*Recibo N°:* ${item.num_recibo || '000000'}%0A` +
+                    `*Cliente:* ${item.cliente || ''}%0A` +
+                    `*C.I.:* ${item.ci || ''}%0A` +
+                    `*Monto Pagado:* ${item.cuota || 0} Bs.%0A` +
+                    `*Mes:* ${item.mes || '-'}%0A` +
+                    `*Estado:* ${item.estadoCuota || '-'}%0A` +
+                    `*Fecha:* ${new Date(item.fecha).toLocaleDateString()}%0A%0A` +
+                    `_¡Muchas gracias por su pago!_`;
+                window.open(`https://api.whatsapp.com/send?text=${texto}`, '_blank');
+            } catch (e) {
+                console.error('Error:', e);
+                alert('Error al enviar mensaje de WhatsApp.');
+            }
+        }
+
+        // Cerrar modales al hacer clic fuera
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) this.style.display = 'none';
+            });
+        });
+    </script>
+</body>
+</html>

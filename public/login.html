@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+  <title>Iniciar Sesión - Sistema de Cobranzas</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #0f4c5c 0%, #1a6b7a 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .login-card {
+      background: white;
+      border-radius: 20px;
+      padding: 30px 25px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      animation: fadeIn 0.5s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .login-card .logo {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .login-card .logo img {
+      max-height: 60px;
+      margin-bottom: 5px;
+    }
+    .login-card .logo h2 {
+      color: #0f4c5c;
+      font-size: 20px;
+      font-weight: 600;
+    }
+    .login-card .logo p {
+      color: #64748b;
+      font-size: 13px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      font-size: 13px;
+      color: #334155;
+      margin-bottom: 5px;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 15px;
+      transition: border-color 0.3s, box-shadow 0.3s;
+      outline: none;
+    }
+    .form-group input:focus {
+      border-color: #2a9d8f;
+      box-shadow: 0 0 0 4px rgba(42, 157, 143, 0.15);
+    }
+    .btn-login {
+      width: 100%;
+      padding: 12px;
+      background: #0f4c5c;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.1s;
+      margin-top: 5px;
+    }
+    .btn-login:hover {
+      background: #0a3641;
+    }
+    .btn-login:active {
+      transform: scale(0.98);
+    }
+    .btn-register {
+      background: #2a9d8f;
+    }
+    .btn-register:hover {
+      background: #218276;
+    }
+    .error-msg {
+      color: #e76f51;
+      font-size: 14px;
+      margin-top: 10px;
+      text-align: center;
+      min-height: 20px;
+    }
+    .footer-text {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .footer-text a {
+      color: #2a9d8f;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    @media (max-width: 480px) {
+      .login-card { padding: 20px; }
+      .login-card .logo h2 { font-size: 18px; }
+      .btn-login { font-size: 15px; padding: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <div class="logo">
+      <img src="/logoidn.png" alt="Logo" onerror="this.style.display='none'" />
+      <h2><i class="fas fa-coins" style="color:#2a9d8f;"></i> Cobranzas</h2>
+      <p>Ingresa con tus credenciales</p>
+    </div>
+    <form id="loginForm">
+      <div class="form-group">
+        <label><i class="fas fa-envelope"></i> Correo electrónico</label>
+        <input type="email" id="email" placeholder="tu@email.com" required autofocus />
+      </div>
+      <div class="form-group">
+        <label><i class="fas fa-lock"></i> Contraseña</label>
+        <input type="password" id="password" placeholder="••••••••" required />
+      </div>
+      <button type="submit" class="btn-login"><i class="fas fa-sign-in-alt"></i> Iniciar Sesión</button>
+      <button type="button" class="btn-login btn-register" onclick="registrarUsuario()" style="margin-top:8px;">
+        <i class="fas fa-user-plus"></i> Crear cuenta
+      </button>
+      <div id="errorMsg" class="error-msg"></div>
+    </form>
+    <div class="footer-text">
+      Sistema de Cobranzas v2.0 · <a href="#" onclick="alert('Contacta al administrador')">¿Olvidaste tu contraseña?</a>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script>
+    const SUPABASE_URL = 'https://jzphjuzluogyciyzlkad.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_KJIcDOUmiiaJV-pzZImeCg_o21_C01D';
+    // Usamos un nombre diferente para evitar conflicto con la variable global 'supabase' creada por el script UMD
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    (async function checkSession() {
+      const session = localStorage.getItem('supabaseSession');
+      if (session) {
+        try {
+          const { data: { user }, error } = await supabaseClient.auth.getUser();
+          if (user && !error) {
+            window.location.href = '/';
+            return;
+          }
+        } catch (e) {
+          localStorage.removeItem('supabaseSession');
+          localStorage.removeItem('supabaseAccessToken');
+        }
+      }
+    })();
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const errorMsg = document.getElementById('errorMsg');
+      errorMsg.textContent = '';
+      if (!email || !password) {
+        errorMsg.textContent = 'Por favor, completa todos los campos.';
+        return;
+      }
+      try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) {
+          errorMsg.textContent = '❌ ' + error.message;
+          return;
+        }
+        if (data.session) {
+          localStorage.setItem('supabaseSession', JSON.stringify(data.session));
+          localStorage.setItem('supabaseAccessToken', data.session.access_token);
+          window.location.href = '/';
+        } else {
+          errorMsg.textContent = 'No se pudo iniciar sesión. Intenta de nuevo.';
+        }
+      } catch (err) {
+        console.error(err);
+        errorMsg.textContent = 'Error de conexión. Verifica tu internet.';
+      }
+    });
+
+    async function registrarUsuario() {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const errorMsg = document.getElementById('errorMsg');
+      if (!email || !password) {
+        errorMsg.textContent = 'Completa email y contraseña para registrarte.';
+        return;
+      }
+      try {
+        const { data, error } = await supabaseClient.auth.signUp({ email, password });
+        if (error) {
+          errorMsg.textContent = '❌ ' + error.message;
+          return;
+        }
+        if (data.user) {
+          alert('✅ Usuario registrado. Revisa tu correo para confirmar (si no está auto-confirmado).');
+        }
+      } catch (err) {
+        console.error(err);
+        errorMsg.textContent = 'Error de conexión.';
+      }
+    }
+  </script>
+</body>
+</html>
