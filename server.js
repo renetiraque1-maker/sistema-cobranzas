@@ -129,13 +129,12 @@ app.get('/siguiente-recibo', async (req, res) => {
     res.json({ siguiente });
 });
 
-// 4. Guardar recibo (cobranza)
+// 4. Guardar recibo (cobranza) - CORREGIDO
 app.post('/guardar-recibo', async (req, res) => {
     const p = req.body;
     const nuevoRecibo = {
         id: Date.now(),
         num_recibo: p.num_recibo,
-        producto_id: p.productoId || null,
         ci: p.ci,
         cliente: p.cliente,
         direccion: p.direccion,
@@ -150,7 +149,10 @@ app.post('/guardar-recibo', async (req, res) => {
         fecha: new Date().toISOString()
     };
     const { error } = await supabase.from('cobranzas').insert([nuevoRecibo]);
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) {
+        console.error('Error al insertar cobranza:', error);
+        return res.status(500).json({ error: error.message });
+    }
     res.json({ mensaje: '✅ Pago registrado exitosamente.' });
 });
 
