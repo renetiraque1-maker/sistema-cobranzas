@@ -8,7 +8,6 @@ const supabase = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middlewares
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -35,7 +34,7 @@ async function authenticate(req, res, next) {
     }
 }
 
-// Proteger todas las rutas (excepto login y estáticos)
+// Proteger rutas
 app.use('/buscar-cliente', authenticate);
 app.use('/cliente-productos', authenticate);
 app.use('/siguiente-recibo', authenticate);
@@ -46,9 +45,11 @@ app.use('/eliminar-cliente', authenticate);
 app.use('/reactivar-cliente', authenticate);
 app.use('/todas-cobranzas', authenticate);
 app.use('/todos-clientes', authenticate);
+app.use('/cobranza', authenticate);
+app.use('/deudores', authenticate);
 
 // ============================================================
-// HELPERS DE MAPEO
+// HELPERS
 // ============================================================
 const mapearProducto = (p) => ({
     id: p.id,
@@ -87,24 +88,31 @@ const mapearCobranza = (c) => ({
 // RUTAS
 // ============================================================
 
-// 1. Buscar cliente por CI (solo activos)
-app.get('/buscar-cliente/:ci', async (req, res) => {
-    const ci = req.params.ci.trim();
-    const { data, error } = await supabase
-        .from('productos')
-        .select('*')
-        .eq('ci', ci)
-        .eq('activo', true)
-        .limit(1);
+// Buscar cliente por CI o nombre
+app.get('/buscar-cliente', authenticate, async (req, res) => {
+    const { ci, nombre } = req.query;
+    let query = supabase.from('productos').select('*').eq('activo', true);
+    if (ci) {
+        // Validar que CI sea numérico
+        if (isNaN(ci.trim())) {
+            return res.status(400).json({ error: 'El CI debe ser numérico' });
+        }
+        query = query.eq('ci', ci.trim());
+    } else if (nombre) {
+        query = query.ilike('cliente', `%${nombre.trim()}%`);
+    } else {
+        return res.status(400).json({ error: 'Debe proporcionar ci o nombre' });
+    }
+    const { data, error } = await query;
     if (error) return res.status(500).json({ error: error.message });
     if (!data || data.length === 0) {
-        return res.status(404).json({ error: 'Cliente no encontrado o inactivo.' });
+        return res.status(404).json({ error: 'Cliente no encontrado' });
     }
-    res.json(mapearProducto(data[0]));
+    res.json(data.map(mapearProducto));
 });
 
-// 2. Todos los productos de un cliente (activos e inactivos)
-app.get('/cliente-productos/:ci', async (req, res) => {
+// Todos los productos de un cliente (activos e inactivos)
+app.get('/cliente-productos/:ci', authenticate, async (req, res) => {
     const { ci } = req.params;
     const { data, error } = await supabase
         .from('productos')
@@ -114,8 +122,8 @@ app.get('/cliente-productos/:ci', async (req, res) => {
     res.json(data.map(mapearProducto));
 });
 
-// 3. Siguiente número de recibo
-app.get('/siguiente-recibo', async (req, res) => {
+// Siguiente número de recibo
+app.get('/siguiente-recibo', authenticate, async (req, res) => {
     const { data, error } = await supabase
         .from('cobranzas')
         .select('num_recibo')
@@ -129,9 +137,13 @@ app.get('/siguiente-recibo', async (req, res) => {
     res.json({ siguiente });
 });
 
-// 4. Guardar recibo (cobranza) - CORREGIDO
-app.post('/guardar-recibo', async (req, res) => {
+// Guardar recibo
+app.post('/guardar-recibo', authenticate, async (req, res) => {
     const p = req.body;
+    // Validar que CI sea numérico
+    if (isNaN(p.ci)) {
+        return res.status(400).json({ error: 'El CI debe ser numérico' });
+    }
     const nuevoRecibo = {
         id: Date.now(),
         num_recibo: p.num_recibo,
@@ -148,16 +160,18 @@ app.post('/guardar-recibo', async (req, res) => {
         observaciones: p.observaciones,
         fecha: new Date().toISOString()
     };
-    const { error } = await supabase.from('cobranzas').insert([nuevoRecibo]);
+    console.log('📝 Insertando cobranza:', nuevoRecibo);
+    const { data, error } = await supabase.from('cobranzas').insert([nuevoRecibo]).select();
     if (error) {
-        console.error('Error al insertar cobranza:', error);
-        return res.status(500).json({ error: error.message });
+        console.error('❌ Error al insertar cobranza:', error);
+        return res.status(500).json({ error: error.message, details: error });
     }
-    res.json({ mensaje: '✅ Pago registrado exitosamente.' });
+    console.log('✅ Cobranza insertada correctamente:', data);
+    res.json({ mensaje: '✅ Pago registrado exitosamente.', data });
 });
 
-// 5. Historial por CI
-app.get('/historial/:ci', async (req, res) => {
+// Historial por CI
+app.get('/historial/:ci', authenticate, async (req, res) => {
     const ci = req.params.ci.trim();
     const { data, error } = await supabase
         .from('cobranzas')
@@ -168,9 +182,13 @@ app.get('/historial/:ci', async (req, res) => {
     res.json(data.map(mapearCobranza));
 });
 
-// 6. Agregar nuevo producto (cliente existente o nuevo)
-app.post('/agregar-cliente', async (req, res) => {
+// Agregar nuevo producto (cliente existente o nuevo)
+app.post('/agregar-cliente', authenticate, async (req, res) => {
     const p = req.body;
+    // Validar CI numérico
+    if (isNaN(p.ci) || p.ci.trim() === '') {
+        return res.status(400).json({ error: 'El CI debe ser un número válido' });
+    }
     const nuevoProducto = {
         id: Date.now(),
         ci: p.ci,
@@ -195,8 +213,8 @@ app.post('/agregar-cliente', async (req, res) => {
     });
 });
 
-// 7. Eliminar producto (soft delete)
-app.delete('/eliminar-cliente/:id', async (req, res) => {
+// Eliminar producto (soft delete)
+app.delete('/eliminar-cliente/:id', authenticate, async (req, res) => {
     const id = parseInt(req.params.id);
     const { error } = await supabase
         .from('productos')
@@ -206,8 +224,8 @@ app.delete('/eliminar-cliente/:id', async (req, res) => {
     res.json({ mensaje: '✅ Producto marcado como inactivo.' });
 });
 
-// 8. Reactivar producto
-app.put('/reactivar-cliente/:id', async (req, res) => {
+// Reactivar producto
+app.put('/reactivar-cliente/:id', authenticate, async (req, res) => {
     const id = parseInt(req.params.id);
     const { error } = await supabase
         .from('productos')
@@ -217,8 +235,8 @@ app.put('/reactivar-cliente/:id', async (req, res) => {
     res.json({ mensaje: '✅ Producto reactivado exitosamente.' });
 });
 
-// 9. Todas las cobranzas (reporte)
-app.get('/todas-cobranzas', async (req, res) => {
+// Todas las cobranzas (reporte)
+app.get('/todas-cobranzas', authenticate, async (req, res) => {
     const { data, error } = await supabase
         .from('cobranzas')
         .select('*')
@@ -227,8 +245,8 @@ app.get('/todas-cobranzas', async (req, res) => {
     res.json(data.map(mapearCobranza));
 });
 
-// 10. Todos los clientes
-app.get('/todos-clientes', async (req, res) => {
+// Todos los clientes
+app.get('/todos-clientes', authenticate, async (req, res) => {
     const { data, error } = await supabase
         .from('productos')
         .select('*')
@@ -237,7 +255,63 @@ app.get('/todos-clientes', async (req, res) => {
     res.json(data.map(mapearProducto));
 });
 
-// Iniciar servidor
+// Eliminar cobranza (solo del día actual)
+app.delete('/cobranza/:id', authenticate, async (req, res) => {
+    const id = parseInt(req.params.id);
+    const { data: cobranza, error: getError } = await supabase
+        .from('cobranzas')
+        .select('fecha')
+        .eq('id', id)
+        .single();
+    if (getError || !cobranza) {
+        return res.status(404).json({ error: 'Cobranza no encontrada' });
+    }
+    const fechaCobranza = new Date(cobranza.fecha);
+    const hoy = new Date();
+    if (fechaCobranza.toDateString() !== hoy.toDateString()) {
+        return res.status(403).json({ error: 'Solo se pueden eliminar registros del día actual' });
+    }
+    const { error } = await supabase
+        .from('cobranzas')
+        .delete()
+        .eq('id', id);
+    if (error) {
+        return res.status(500).json({ error: error.message });
+    }
+    res.json({ mensaje: 'Cobranza eliminada correctamente' });
+});
+
+// Deudores del mes
+app.get('/deudores', authenticate, async (req, res) => {
+    const { mes, anio } = req.query;
+    let year = parseInt(anio) || new Date().getFullYear();
+    let month = parseInt(mes) || (new Date().getMonth() + 1);
+    
+    const primerDia = new Date(year, month - 1, 1);
+    const ultimoDia = new Date(year, month, 0);
+    const fechaInicio = primerDia.toISOString().split('T')[0];
+    const fechaFin = ultimoDia.toISOString().split('T')[0];
+    
+    const { data: productos, error: prodError } = await supabase
+        .from('productos')
+        .select('*')
+        .eq('activo', true);
+    if (prodError) return res.status(500).json({ error: prodError.message });
+    
+    const { data: cobranzas, error: cobError } = await supabase
+        .from('cobranzas')
+        .select('ci, fecha')
+        .gte('fecha', fechaInicio)
+        .lte('fecha', fechaFin);
+    if (cobError) return res.status(500).json({ error: cobError.message });
+    
+    const pagaron = new Set(cobranzas.map(c => c.ci));
+    const deudores = productos
+        .filter(p => !pagaron.has(p.ci))
+        .map(mapearProducto);
+    res.json(deudores);
+});
+
 app.listen(PORT, () => {
     console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
 });

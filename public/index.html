@@ -1,32 +1,22 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-
-    <!-- Meta tags para PWA -->
-<meta name="theme-color" content="#0f4c5c">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
-<!-- Iconos para diferentes dispositivos -->
-<link rel="icon" type="image/png" sizes="192x192" href="https://ui-avatars.com/api/?name=C&background=0f4c5c&color=fff&size=192">
-<link rel="icon" type="image/png" sizes="512x512" href="https://ui-avatars.com/api/?name=C&background=0f4c5c&color=fff&size=512">
-<link rel="apple-touch-icon" href="https://ui-avatars.com/api/?name=C&background=0f4c5c&color=fff&size=180">
-<link rel="manifest" href="/manifest.json">
-
-
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <meta name="theme-color" content="#0f4c5c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" type="image/png" sizes="192x192" href="https://ui-avatars.com/api/?name=C&background=0f4c5c&color=fff&size=192">
+    <link rel="icon" type="image/png" sizes="512x512" href="https://ui-avatars.com/api/?name=C&background=0f4c5c&color=fff&size=512">
+    <link rel="apple-touch-icon" href="https://ui-avatars.com/api/?name=C&background=0f4c5c&color=fff&size=180">
+    <link rel="manifest" href="/manifest.json">
     <title>Sistema Local de Cobranzas</title>
-    <!-- Librerías para PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Supabase JS (UMD) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
-        /* ====== ESTILOS (los mismos que ya tenías, no los repito para no alargar) ====== */
+        /* ====== ESTILOS (los mismos que ya tenías) ====== */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #e8f0f8 0%, #d4e4f0 100%); min-height: 100vh; padding: 15px; }
         .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 16px; box-shadow: 0 8px 40px rgba(0,0,0,0.12); }
@@ -122,17 +112,17 @@
         .loading-overlay.show { display: flex; }
         .loading-spinner { border: 4px solid #f3f3f3; border-top: 4px solid #2a9d8f; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 20px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .extracto-cliente-info, .reporte-filtros { background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #e2e8f0; }
+        .extracto-cliente-info, .reporte-filtros, .deudores-filtros { background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #e2e8f0; }
         .extracto-cliente-info p { margin: 3px 0; font-size: 13px; }
-        .extracto-tabla, .reporte-tabla { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
-        .extracto-tabla th, .reporte-tabla th { background: #0f4c5c; color: white; padding: 6px; text-align: left; }
-        .extracto-tabla td, .reporte-tabla td { padding: 6px; border-bottom: 1px solid #e2e8f0; }
-        .extracto-total, .reporte-total { font-weight: bold; font-size: 14px; text-align: right; padding: 8px; border-top: 2px solid #0f4c5c; margin-top: 8px; }
-        .extracto-acciones, .reporte-acciones { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; flex-wrap: wrap; }
-        .reporte-resumen { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
-        .reporte-resumen-item { background: #e0f2f1; padding: 10px; border-radius: 8px; text-align: center; }
-        .reporte-resumen-item .numero { font-size: 20px; font-weight: bold; color: #0f4c5c; }
-        .reporte-resumen-item .label { font-size: 11px; color: #475569; }
+        .extracto-tabla, .reporte-tabla, .deudores-tabla { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+        .extracto-tabla th, .reporte-tabla th, .deudores-tabla th { background: #0f4c5c; color: white; padding: 6px; text-align: left; }
+        .extracto-tabla td, .reporte-tabla td, .deudores-tabla td { padding: 6px; border-bottom: 1px solid #e2e8f0; }
+        .extracto-total, .reporte-total, .deudores-total { font-weight: bold; font-size: 14px; text-align: right; padding: 8px; border-top: 2px solid #0f4c5c; margin-top: 8px; }
+        .extracto-acciones, .reporte-acciones, .deudores-acciones { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; flex-wrap: wrap; }
+        .reporte-resumen, .deudores-resumen { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+        .reporte-resumen-item, .deudores-resumen-item { background: #e0f2f1; padding: 10px; border-radius: 8px; text-align: center; }
+        .reporte-resumen-item .numero, .deudores-resumen-item .numero { font-size: 20px; font-weight: bold; color: #0f4c5c; }
+        .reporte-resumen-item .label, .deudores-resumen-item .label { font-size: 11px; color: #475569; }
         .filtros-fecha { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
         .filtros-fecha .form-group { flex: 1; min-width: 120px; }
         .filtros-fecha .form-group label { font-size: 10px; font-weight: 700; color: #334155; text-transform: uppercase; }
@@ -148,7 +138,7 @@
             .header-left { justify-content: center; }
             .header-left h2 { font-size: 18px; }
             .user-info .email { max-width: 100px; }
-            .reporte-resumen { grid-template-columns: 1fr; }
+            .reporte-resumen, .deudores-resumen { grid-template-columns: 1fr; }
             .filtros-fecha { flex-direction: column; }
             .filtros-fecha .form-group { min-width: 100%; }
             .panel-resumen .resumen-header { flex-direction: column; align-items: stretch; }
@@ -186,6 +176,7 @@
             <div class="header-left">
                 <h2><i class="fas fa-coins"></i> Sistema de Cobranzas</h2>
                 <button class="btn btn-warning btn-sm" onclick="abrirReporteGeneral()"><i class="fas fa-chart-bar"></i> Reporte</button>
+                <button class="btn btn-info btn-sm" onclick="abrirDeudores()"><i class="fas fa-users"></i> Deudores</button>
             </div>
             <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
                 <span class="user-info">
@@ -201,9 +192,9 @@
         <div class="search-container">
             <div class="grid">
                 <div class="form-group">
-                    <label><i class="fas fa-search"></i> Buscar Cliente (C.I.)</label>
+                    <label><i class="fas fa-search"></i> Buscar Cliente (C.I. o Nombre)</label>
                     <div class="input-group">
-                        <input type="text" id="buscar_ci" placeholder="Ej: 8780620" onkeypress="if(event.key === 'Enter') buscarCliente();">
+                        <input type="text" id="buscar_ci" placeholder="Ej: 8780620 o Nombre" onkeypress="if(event.key === 'Enter') buscarCliente();">
                         <button class="btn btn-primary" onclick="buscarCliente()"><i class="fas fa-search"></i> Buscar</button>
                     </div>
                 </div>
@@ -314,7 +305,7 @@
                 <tbody id="tablaHistorial">
                     <tr><td colspan="6" style="text-align:center; color:#888; padding: 20px;">
                         <i class="fas fa-search" style="font-size: 20px; display: block; margin-bottom: 6px;"></i>
-                        Ingresa el C.I. arriba para cargar el historial.
+                        Ingresa el C.I. o nombre arriba para cargar el historial.
                     </td></tr>
                 </tbody>
             </table>
@@ -456,6 +447,71 @@
                 <button class="btn btn-danger" onclick="cerrarReporte()"><i class="fas fa-times"></i> Cerrar</button>
                 <button class="btn btn-whatsapp" onclick="enviarReporteWhatsApp()"><i class="fab fa-whatsapp"></i> WhatsApp</button>
                 <button class="btn btn-info" onclick="descargarReportePDF()"><i class="fas fa-file-pdf"></i> Descargar PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== MODAL DEUDORES ====== -->
+    <div id="modalDeudores" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-users"></i> Clientes Deudores del Mes</h3>
+            <div class="deudores-filtros">
+                <div class="filtros-fecha">
+                    <div class="form-group">
+                        <label>Mes</label>
+                        <select id="deudores_mes" style="padding:6px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; width:100%;">
+                            <option value="1">Enero</option>
+                            <option value="2">Febrero</option>
+                            <option value="3">Marzo</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Mayo</option>
+                            <option value="6">Junio</option>
+                            <option value="7">Julio</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Año</label>
+                        <input type="number" id="deudores_anio" style="padding:6px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; width:100%;">
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: flex-end; padding-bottom: 2px;">
+                        <button class="btn btn-info btn-sm" onclick="consultarDeudores()"><i class="fas fa-search"></i> Consultar</button>
+                    </div>
+                </div>
+            </div>
+            <div class="deudores-resumen" id="deudoresResumen" style="display:none;">
+                <div class="deudores-resumen-item">
+                    <div class="numero" id="deu_total">0</div>
+                    <div class="label">Total Deudores</div>
+                </div>
+                <div class="deudores-resumen-item">
+                    <div class="numero" id="deu_monto_total">0.00</div>
+                    <div class="label">Monto Adeudado (Bs.)</div>
+                </div>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="deudores-tabla" id="deudoresTabla">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Cliente</th>
+                            <th>CI</th>
+                            <th>Equipo</th>
+                            <th>Marca/Modelo</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="deudoresTbody">
+                        <tr><td colspan="6" style="text-align:center; color:#888; padding: 30px;">Selecciona un mes y haz clic en Consultar.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="deudores-acciones">
+                <button class="btn btn-danger" onclick="cerrarDeudores()"><i class="fas fa-times"></i> Cerrar</button>
             </div>
         </div>
     </div>
@@ -634,6 +690,8 @@
             hace30.setDate(hoy.getDate() - 30);
             document.getElementById('reporte_fecha_desde').value = hace30.toISOString().split('T')[0];
             document.getElementById('reporte_fecha_hasta').value = hoy.toISOString().split('T')[0];
+            document.getElementById('deudores_mes').value = hoy.getMonth() + 1;
+            document.getElementById('deudores_anio').value = hoy.getFullYear();
         };
 
         // ============================================================
@@ -711,15 +769,16 @@
         function abrirModalCliente() {
             document.getElementById('modalCliente').style.display = 'flex';
             const ci = document.getElementById('buscar_ci').value.trim();
-            if (ci) {
-                fetchWithAuth(`/buscar-cliente/${ci}`)
+            if (ci && /^\d+$/.test(ci)) {
+                fetchWithAuth(`/buscar-cliente?ci=${encodeURIComponent(ci)}`)
                     .then(res => { if (res.ok) return res.json(); return null; })
                     .then(data => {
-                        if (data) {
-                            document.getElementById('nc_ci').value = ci;
+                        if (data && data.length > 0) {
+                            const p = data[0];
+                            document.getElementById('nc_ci').value = p.ci || '';
                             document.getElementById('nc_ci').readOnly = true;
-                            document.getElementById('nc_nombre').value = data.cliente || '';
-                            document.getElementById('nc_direccion').value = data.direccion || '';
+                            document.getElementById('nc_nombre').value = p.cliente || '';
+                            document.getElementById('nc_direccion').value = p.direccion || '';
                             document.getElementById('nc_equipo').value = '';
                             document.getElementById('nc_marca').value = '';
                             document.getElementById('nc_imei').value = '';
@@ -751,10 +810,17 @@
         document.getElementById('formNuevoCliente').addEventListener('submit', async function(e) {
             e.preventDefault();
             const ci = document.getElementById('nc_ci').value.trim();
+            if (!/^\d+$/.test(ci)) {
+                alert('El C.I. debe contener solo números.');
+                return;
+            }
             try {
-                const resExistente = await fetchWithAuth(`/buscar-cliente/${ci}`);
+                const resExistente = await fetchWithAuth(`/buscar-cliente?ci=${encodeURIComponent(ci)}`);
                 let clienteExistente = null;
-                if (resExistente.ok) clienteExistente = await resExistente.json();
+                if (resExistente.ok) {
+                    const data = await resExistente.json();
+                    if (data.length > 0) clienteExistente = data[0];
+                }
                 let nombreCliente = document.getElementById('nc_nombre').value.toUpperCase().trim();
                 if (clienteExistente) {
                     nombreCliente = clienteExistente.cliente;
@@ -795,47 +861,51 @@
         });
 
         // ============================================================
-        // BUSCAR CLIENTE
+        // BUSCAR CLIENTE (mejorado: por CI o nombre)
         // ============================================================
         async function buscarCliente() {
-            const ci = document.getElementById('buscar_ci').value.trim();
-            if (!ci) return alert('Por favor ingresa un C.I.');
-
+            const query = document.getElementById('buscar_ci').value.trim();
+            if (!query) return alert('Ingresa un C.I. o nombre');
+            let url;
+            if (/^\d+$/.test(query)) {
+                url = `/buscar-cliente?ci=${encodeURIComponent(query)}`;
+            } else {
+                url = `/buscar-cliente?nombre=${encodeURIComponent(query)}`;
+            }
             try {
-                const res = await fetchWithAuth(`/cliente-productos/${ci}`);
-                const productos = await res.json();
-                const productosActivos = productos.filter(p => p.activo !== false);
-
-                if (productosActivos.length === 0) {
-                    alert('Cliente no encontrado o sin productos activos.');
-                    document.getElementById('btnExtracto').style.display = 'none';
-                    document.getElementById('btnEliminar').style.display = 'none';
-                    document.getElementById('panelResumen').style.display = 'none';
+                const res = await fetchWithAuth(url);
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    alert(errorData.error || 'Cliente no encontrado');
                     return;
                 }
-
-                let productoSeleccionado;
-                if (productosActivos.length > 1) {
-                    let mensaje = '📋 El cliente tiene múltiples productos activos:\n\n';
-                    productosActivos.forEach((p, i) => {
-                        mensaje += `${i + 1}. ${p.equipo} - ${p.marcaModelo}\n`;
+                const productos = await res.json();
+                if (productos.length === 0) {
+                    alert('No se encontraron clientes');
+                    return;
+                }
+                if (productos.length === 1) {
+                    // Asegurar que el campo de búsqueda tenga el CI
+                    document.getElementById('buscar_ci').value = productos[0].ci;
+                    cargarProductoCliente(productos[0]);
+                } else {
+                    let mensaje = 'Se encontraron varios clientes:\n\n';
+                    productos.forEach((p, i) => {
+                        mensaje += `${i+1}. ${p.cliente} - ${p.equipo} (CI: ${p.ci})\n`;
                     });
-                    mensaje += '\nSelecciona el producto a gestionar (1-' + productosActivos.length + '):';
+                    mensaje += '\nSelecciona el número correspondiente:';
                     const seleccion = prompt(mensaje);
                     if (!seleccion) return;
                     const index = parseInt(seleccion) - 1;
-                    if (isNaN(index) || index < 0 || index >= productosActivos.length) {
-                        alert('Selección inválida.');
+                    if (isNaN(index) || index < 0 || index >= productos.length) {
+                        alert('Selección inválida');
                         return;
                     }
-                    productoSeleccionado = productosActivos[index];
-                } else {
-                    productoSeleccionado = productosActivos[0];
+                    document.getElementById('buscar_ci').value = productos[index].ci;
+                    cargarProductoCliente(productos[index]);
                 }
-
-                cargarProductoCliente(productoSeleccionado);
             } catch (err) {
-                alert('Error al conectar con el servidor.');
+                alert('Error al conectar con el servidor');
                 console.error(err);
             }
         }
@@ -845,6 +915,7 @@
             datosClienteActual = producto;
             productoSeleccionadoId = producto.id;
 
+            document.getElementById('buscar_ci').value = producto.ci; // Asegurar CI numérico
             document.getElementById('c_nombre').value = producto.cliente || '';
             document.getElementById('c_direccion').value = producto.direccion || '';
             document.getElementById('c_equipo').value = producto.equipo || '';
@@ -870,13 +941,34 @@
             try {
                 const res = await fetchWithAuth(`/historial/${ci}`);
                 historialCompleto = await res.json();
-                const numPagosExistentes = historialCompleto.length;
-                document.getElementById('c_num_cuota').value = (numPagosExistentes === 0) ? 'CUOTA INICIAL' : `CUOTA N° ${numPagosExistentes}`;
+                const proximaCuota = obtenerProximaCuota(historialCompleto);
+                document.getElementById('c_num_cuota').value = proximaCuota;
                 renderizarTabla(historialCompleto);
                 actualizarResumenCliente();
             } catch (e) {
                 console.error(e);
             }
+        }
+
+        function obtenerProximaCuota(historial) {
+            if (historial.length === 0) return 'CUOTA INICIAL';
+            let ultimoNumero = 0;
+            for (let item of historial) {
+                const estado = item.estadoCuota || '';
+                const match = estado.match(/CUOTA N° (\d+)/);
+                if (match) {
+                    const num = parseInt(match[1]);
+                    if (num > ultimoNumero) ultimoNumero = num;
+                }
+            }
+            if (ultimoNumero === 0) {
+                if (historial.some(item => item.estadoCuota && item.estadoCuota.includes('CUOTA INICIAL'))) {
+                    return 'CUOTA N° 1';
+                } else {
+                    return 'CUOTA INICIAL';
+                }
+            }
+            return `CUOTA N° ${ultimoNumero + 1}`;
         }
 
         function renderizarTabla(lista) {
@@ -887,8 +979,14 @@
                     <i class="fas fa-inbox" style="font-size:20px;display:block;margin-bottom:6px;"></i>No se encontraron registros de pago.</td></tr>`;
                 return;
             }
+            const hoy = new Date();
             lista.forEach((item) => {
                 const f = new Date(item.fecha).toLocaleString('es-BO');
+                const fechaItem = new Date(item.fecha);
+                const esHoy = fechaItem.toDateString() === hoy.toDateString();
+                const botonEliminar = esHoy 
+                    ? `<button class="btn btn-danger btn-small" onclick="eliminarCobranza(${item.id})"><i class="fas fa-trash"></i></button>` 
+                    : '';
                 const itemStr = JSON.stringify(item).replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 tbody.innerHTML += `
                     <tr>
@@ -901,6 +999,7 @@
                             <div class="action-buttons" style="justify-content:center;">
                                 <button class="btn btn-info btn-small" onclick="generarPDF('${itemStr}')"><i class="fas fa-file-pdf"></i> PDF</button>
                                 <button class="btn btn-whatsapp btn-small" onclick="enviarWhatsApp('${itemStr}')"><i class="fab fa-whatsapp"></i></button>
+                                ${botonEliminar}
                             </div>
                         </td>
                     </tr>
@@ -932,13 +1031,13 @@
             const montoTotal = parseFloat(datosClienteActual.montoTotal) || 0;
             const saldoPendiente = montoTotal - totalPagado;
 
-            let proximaCuota = '-', estado = '', estadoClase = '';
+            const proximaCuotaTexto = obtenerProximaCuota(historialCompleto);
+
+            let estado = '', estadoClase = '';
             if (pagosRealizados === 0) {
-                proximaCuota = 'Cuota Inicial';
                 estado = '🔴 Sin pagos';
                 estadoClase = 'badge-danger';
             } else if (pagosRealizados < totalCuotas) {
-                proximaCuota = `Cuota N° ${pagosRealizados + 1}`;
                 const hoy = new Date();
                 const fechaInicio = new Date(datosClienteActual.fechaInicio);
                 const mesesTranscurridos = (hoy.getFullYear() - fechaInicio.getFullYear()) * 12 + (hoy.getMonth() - fechaInicio.getMonth());
@@ -951,7 +1050,6 @@
                     estadoClase = 'badge-danger';
                 }
             } else {
-                proximaCuota = '✅ Completado';
                 estado = '✅ Pagado';
                 estadoClase = 'badge-success';
             }
@@ -960,7 +1058,7 @@
             document.getElementById('resumen_cuotas_pagadas').textContent = `${pagosRealizados}/${totalCuotas}`;
             document.getElementById('resumen_total_pagado').textContent = `${totalPagado.toFixed(2)} Bs.`;
             document.getElementById('resumen_saldo_pendiente').textContent = `${saldoPendiente.toFixed(2)} Bs.`;
-            document.getElementById('resumen_proxima_cuota').textContent = proximaCuota;
+            document.getElementById('resumen_proxima_cuota').textContent = proximaCuotaTexto;
             const estadoBadge = document.getElementById('resumen_estado');
             estadoBadge.textContent = estado;
             estadoBadge.className = `badge ${estadoClase}`;
@@ -998,6 +1096,26 @@
         }
 
         // ============================================================
+        // ELIMINAR COBRANZA (solo del día actual)
+        // ============================================================
+        async function eliminarCobranza(id) {
+            if (!confirm('¿Estás seguro de eliminar este registro? Esta acción no se puede deshacer.')) return;
+            try {
+                const res = await fetchWithAuth(`/cobranza/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (res.ok) {
+                    alert('Registro eliminado correctamente');
+                    cargarHistorial(clienteCargadoCI);
+                } else {
+                    alert(data.error || 'Error al eliminar');
+                }
+            } catch (err) {
+                alert('Error al conectar con el servidor');
+                console.error(err);
+            }
+        }
+
+        // ============================================================
         // RECIBOS
         // ============================================================
         async function obtenerSiguienteRecibo() {
@@ -1012,10 +1130,17 @@
         }
 
         async function guardarRecibo() {
-            const ci = document.getElementById('buscar_ci').value.trim();
-            if (!ci || !document.getElementById('c_nombre').value) return alert('Busca un cliente primero.');
+            const ci = clienteCargadoCI; // Usar el CI real del cliente cargado
+            if (!ci) return alert('Primero busca un cliente.');
+            if (!document.getElementById('c_nombre').value) return alert('Busca un cliente primero.');
             const numRecibo = document.getElementById('recibo_num').value;
             if (!numRecibo || numRecibo === '000000') return alert('Espera a que se genere el número de recibo.');
+
+            // Validar que CI sea numérico
+            if (!/^\d+$/.test(ci)) {
+                alert('El CI del cliente no es numérico. Por favor, busca el cliente nuevamente.');
+                return;
+            }
 
             const payload = {
                 num_recibo: numRecibo,
@@ -1030,7 +1155,6 @@
                 estadoCuota: document.getElementById('c_num_cuota').value,
                 montoLiteral: document.getElementById('c_literal').value,
                 observaciones: document.getElementById('c_obs').value
-                // ELIMINADO: productoId: productoSeleccionadoId
             };
 
             try {
@@ -1059,7 +1183,7 @@
         function abrirExtracto() {
             if (historialCompleto.length === 0) return alert('Este cliente no tiene pagos registrados.');
             const cliente = document.getElementById('c_nombre').value;
-            const ci = document.getElementById('buscar_ci').value.trim();
+            const ci = clienteCargadoCI;
             const direccion = document.getElementById('c_direccion').value;
             const equipo = document.getElementById('c_equipo').value;
             const marca = document.getElementById('c_marca').value;
@@ -1323,6 +1447,71 @@
                         document.getElementById('loadingOverlay').classList.remove('show');
                     });
             }, 500);
+        }
+
+        // ============================================================
+        // DEUDORES DEL MES
+        // ============================================================
+        function abrirDeudores() {
+            document.getElementById('modalDeudores').style.display = 'flex';
+            consultarDeudores();
+        }
+
+        function cerrarDeudores() {
+            document.getElementById('modalDeudores').style.display = 'none';
+        }
+
+        async function consultarDeudores() {
+            const mes = document.getElementById('deudores_mes').value;
+            const anio = document.getElementById('deudores_anio').value;
+            if (!mes || !anio) {
+                alert('Selecciona un mes y año válidos.');
+                return;
+            }
+            document.getElementById('loadingOverlay').classList.add('show');
+            try {
+                const res = await fetchWithAuth(`/deudores?mes=${mes}&anio=${anio}`);
+                if (!res.ok) {
+                    const error = await res.json();
+                    alert(error.error || 'Error al obtener deudores');
+                    document.getElementById('loadingOverlay').classList.remove('show');
+                    return;
+                }
+                const deudores = await res.json();
+                mostrarDeudores(deudores);
+            } catch (err) {
+                alert('Error al conectar con el servidor');
+                console.error(err);
+            }
+            document.getElementById('loadingOverlay').classList.remove('show');
+        }
+
+        function mostrarDeudores(deudores) {
+            const tbody = document.getElementById('deudoresTbody');
+            tbody.innerHTML = '';
+            if (deudores.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#888; padding: 30px;">No hay clientes deudores en este mes.</td></tr>';
+                document.getElementById('deudoresResumen').style.display = 'none';
+                return;
+            }
+            let totalMonto = 0;
+            deudores.forEach((p, index) => {
+                const monto = parseFloat(p.cuotaMonto) || 0;
+                totalMonto += monto;
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${p.cliente}</td>
+                        <td>${p.ci}</td>
+                        <td>${p.equipo}</td>
+                        <td>${p.marcaModelo}</td>
+                        <td><span class="badge badge-danger">Deudor</span></td>
+                    </tr>
+                `;
+            });
+            document.getElementById('deu_total').textContent = deudores.length;
+            document.getElementById('deu_monto_total').textContent = totalMonto.toFixed(2);
+            document.getElementById('deudoresResumen').style.display = 'grid';
         }
 
         // ============================================================
