@@ -149,7 +149,6 @@
   <script>
     const SUPABASE_URL = 'https://jzphjuzluogyciyzlkad.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_KJIcDOUmiiaJV-pzZImeCg_o21_C01D';
-    // Usamos un nombre diferente para evitar conflicto con la variable global 'supabase' creada por el script UMD
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     (async function checkSession() {
@@ -164,6 +163,7 @@
         } catch (e) {
           localStorage.removeItem('supabaseSession');
           localStorage.removeItem('supabaseAccessToken');
+          localStorage.removeItem('userRole');
         }
       }
     })();
@@ -187,6 +187,19 @@
         if (data.session) {
           localStorage.setItem('supabaseSession', JSON.stringify(data.session));
           localStorage.setItem('supabaseAccessToken', data.session.access_token);
+          // Obtener el rol del usuario desde el backend
+          const token = data.session.access_token;
+          const res = await fetch('/perfil', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const perfil = await res.json();
+            localStorage.setItem('userRole', perfil.role);
+            localStorage.setItem('userEmail', perfil.email);
+          } else {
+            errorMsg.textContent = 'Error al obtener permisos de usuario.';
+            return;
+          }
           window.location.href = '/';
         } else {
           errorMsg.textContent = 'No se pudo iniciar sesión. Intenta de nuevo.';

@@ -1,22 +1,23 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <meta name="theme-color" content="#0f4c5c">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="icon" type="image/png" sizes="192x192" href="https://ui-avatars.com/api/?name=C&background=0f4c5c&color=fff&size=192">
-    <link rel="icon" type="image/png" sizes="512x512" href="https://ui-avatars.com/api/?name=C&background=0f4c5c&color=fff&size=512">
-    <link rel="apple-touch-icon" href="https://ui-avatars.com/api/?name=C&background=0f4c5c&color=fff&size=180">
-    <link rel="manifest" href="/manifest.json">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <meta name="theme-color" content="#0f4c5c" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="icon" type="image/png" sizes="192x192" href="https://ui-avatars.com/api/?name=C&background=0f4c5c&color=fff&size=192" />
+    <link rel="icon" type="image/png" sizes="512x512" href="https://ui-avatars.com/api/?name=C&background=0f4c5c&color=fff&size=512" />
+    <link rel="apple-touch-icon" href="https://ui-avatars.com/api/?name=C&background=0f4c5c&color=fff&size=180" />
+    <link rel="manifest" href="/manifest.json" />
     <title>Sistema Local de Cobranzas</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
-        /* ====== ESTILOS (los mismos que ya tenías) ====== */
+        /* ====== ESTILOS BASE ====== */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #e8f0f8 0%, #d4e4f0 100%); min-height: 100vh; padding: 15px; }
         .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 16px; box-shadow: 0 8px 40px rgba(0,0,0,0.12); }
@@ -31,8 +32,8 @@
         .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
         .form-group { display: flex; flex-direction: column; }
         .form-group label { font-size: 10px; font-weight: 700; margin-bottom: 4px; color: #334155; text-transform: uppercase; letter-spacing: 0.3px; }
-        .form-group input { padding: 8px 10px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; transition: border-color 0.3s; background: white; width: 100%; }
-        .form-group input:focus { border-color: #2a9d8f; box-shadow: 0 0 0 3px rgba(42,157,143,0.15); }
+        .form-group input, .form-group select { padding: 8px 10px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; transition: border-color 0.3s; background: white; width: 100%; }
+        .form-group input:focus, .form-group select:focus { border-color: #2a9d8f; box-shadow: 0 0 0 3px rgba(42,157,143,0.15); }
         .form-group input[readonly] { background-color: #f8fafc; color: #475569; border-color: #e2e8f0; }
         .search-container { background: linear-gradient(135deg, #e8f5f3 0%, #d4ece8 100%); padding: 15px; border-radius: 12px; border: 1px solid #b2dfdb; margin-bottom: 20px; }
         .btn { padding: 8px 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; transition: all 0.3s; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
@@ -53,6 +54,7 @@
         .btn-small { padding: 4px 10px; font-size: 10px; }
         .btn-sm { padding: 5px 12px; font-size: 11px; }
         .btn-block { width: 100%; justify-content: center; }
+        .btn-hidden { display: none !important; }
         .table-container { margin-top: 20px; border-top: 2px solid #eef2f5; padding-top: 15px; }
         .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
         .table-header h3 { display: flex; align-items: center; gap: 8px; color: #0f4c5c; font-size: 16px; }
@@ -81,8 +83,7 @@
         .panel-resumen .resumen-stats .stat .label { font-size: 9px; opacity: 0.8; }
         .panel-resumen .barra-progreso { margin-top: 10px; background: rgba(255,255,255,0.2); border-radius: 10px; height: 6px; overflow: hidden; }
         .panel-resumen .barra-progreso .barra { height: 100%; background: #2a9d8f; border-radius: 10px; width: 0%; transition: width 0.5s ease; }
-        .panel-resumen .badge { font-size: 12px; padding: 4px 12px; }
-        #reciboCartaPDF, #extractoPDF, #reportePDF { position: absolute; left: -9999px; top: 0; width: 750px; padding: 30px; background: white; font-family: 'Times New Roman', Arial, serif; font-size: 12px; color: #000; line-height: 1.5; z-index: -1; }
+        #reciboCartaPDF, #extractoPDF, #reportePDF, #retiroPDF { position: absolute; left: -9999px; top: 0; width: 750px; padding: 30px; background: white; font-family: 'Times New Roman', Arial, serif; font-size: 12px; color: #000; line-height: 1.5; z-index: -1; }
         .pdf-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 15px; }
         .pdf-logo { display: flex; align-items: center; }
         .pdf-logo img { height: 70px; margin-right: 10px; object-fit: contain; }
@@ -130,6 +131,12 @@
         .input-group { display: flex; gap: 6px; flex-wrap: wrap; }
         .input-group input { flex: 1; min-width: 120px; }
         .input-group .btn { white-space: nowrap; }
+        .resumen-financiero { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: #f0f9fa; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #b2dfdb; }
+        .resumen-financiero .item { text-align: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .resumen-financiero .item .label { font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; }
+        .resumen-financiero .item .valor { font-size: 18px; font-weight: 700; color: #0f4c5c; }
+        .resumen-financiero .item .valor.positivo { color: #2a9d8f; }
+        .resumen-financiero .item .valor.negativo { color: #e76f51; }
         @media (max-width: 768px) {
             body { padding: 10px; }
             .container { padding: 15px; }
@@ -138,7 +145,7 @@
             .header-left { justify-content: center; }
             .header-left h2 { font-size: 18px; }
             .user-info .email { max-width: 100px; }
-            .reporte-resumen, .deudores-resumen { grid-template-columns: 1fr; }
+            .reporte-resumen, .deudores-resumen, .resumen-financiero { grid-template-columns: 1fr; }
             .filtros-fecha { flex-direction: column; }
             .filtros-fecha .form-group { min-width: 100%; }
             .panel-resumen .resumen-header { flex-direction: column; align-items: stretch; }
@@ -177,14 +184,16 @@
                 <h2><i class="fas fa-coins"></i> Sistema de Cobranzas</h2>
                 <button class="btn btn-warning btn-sm" onclick="abrirReporteGeneral()"><i class="fas fa-chart-bar"></i> Reporte</button>
                 <button class="btn btn-info btn-sm" onclick="abrirDeudores()"><i class="fas fa-users"></i> Deudores</button>
+                <button id="btnCapital" class="btn btn-success btn-sm" onclick="abrirModalCapital()" style="display:none;"><i class="fas fa-money-bill-wave"></i> Capital</button>
+                <button id="btnNuevoCliente" class="btn btn-success" onclick="abrirModalCliente()" style="display:none;"><i class="fas fa-user-plus"></i> Nuevo Cliente</button>
             </div>
             <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
                 <span class="user-info">
                     <i class="fas fa-user-circle"></i>
                     <span class="email" id="userEmail">cargando...</span>
+                    <span id="userRoleBadge" class="badge badge-info" style="font-size:10px; margin-left:4px;"></span>
                 </span>
                 <button class="btn btn-danger btn-sm" onclick="cerrarSesion()"><i class="fas fa-sign-out-alt"></i> Salir</button>
-                <button class="btn btn-success" onclick="abrirModalCliente()"><i class="fas fa-user-plus"></i> Nuevo Cliente</button>
             </div>
         </div>
 
@@ -270,6 +279,11 @@
                         <span id="resumen_estado" class="badge">-</span>
                     </div>
                 </div>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+                    <button class="btn btn-warning btn-sm" onclick="abrirModalEdicion()" id="btnEditar" style="display:none;">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                </div>
             </div>
             <div class="barra-progreso">
                 <div class="barra" id="resumen_barra_progreso"></div>
@@ -312,10 +326,56 @@
         </div>
     </div>
 
-    <!-- ====== MODAL NUEVO CLIENTE ====== -->
+    <!-- ====== MODAL CAPITAL E INVERSIONES ====== -->
+    <div id="modalCapital" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-money-bill-wave"></i> Capital e Inversiones</h3>
+            <div style="margin-bottom: 20px;">
+                <h4 style="color:#0f4c5c; font-size:14px; margin-bottom:10px;">Registrar Nuevo Aporte</h4>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Inversionista / Propietario</label>
+                        <input type="text" id="cap_nombre" placeholder="Nombre completo">
+                    </div>
+                    <div class="form-group">
+                        <label>Monto (Bs.)</label>
+                        <input type="number" id="cap_monto" placeholder="0.00" step="0.01">
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Fecha</label>
+                        <input type="date" id="cap_fecha">
+                    </div>
+                    <div class="form-group">
+                        <label>Observación</label>
+                        <input type="text" id="cap_obs" placeholder="Opcional">
+                    </div>
+                </div>
+                <button class="btn btn-success" onclick="registrarAporte()"><i class="fas fa-save"></i> Registrar Aporte</button>
+            </div>
+            <hr style="margin: 15px 0;">
+            <h4 style="color:#0f4c5c; font-size:14px; margin-bottom:10px;">Historial de Aportes</h4>
+            <div style="max-height: 250px; overflow-y: auto;">
+                <table style="width:100%; font-size:12px;">
+                    <thead>
+                        <tr><th>Inversionista</th><th>Monto (Bs.)</th><th>Fecha</th><th>Observación</th></tr>
+                    </thead>
+                    <tbody id="tablaAportes">
+                        <tr><td colspan="4" style="text-align:center; color:#888;">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
+                <button class="btn btn-danger" onclick="cerrarModalCapital()"><i class="fas fa-times"></i> Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== MODAL NUEVO CLIENTE (reutilizado para edición) ====== -->
     <div id="modalCliente" class="modal">
         <div class="modal-content">
-            <h3><i class="fas fa-user-plus"></i> Registrar Nuevo Cliente</h3>
+            <h3><i class="fas fa-user-plus"></i> Registrar Nuevo Cliente / Producto</h3>
             <form id="formNuevoCliente" style="margin-top: 15px;">
                 <div class="grid-2">
                     <div class="form-group"><label>C.I.</label><input type="text" id="nc_ci" required placeholder="Número de identificación"></div>
@@ -338,10 +398,31 @@
                     <div class="form-group"><label>Monto Cuota (Bs.)</label><input type="number" step="0.01" id="nc_monto" required placeholder="0.00"></div>
                     <div class="form-group"><label>Fecha Fin</label><input type="date" id="nc_f_fin" required></div>
                 </div>
-                <div class="form-group" style="margin-top: 10px;">
-                    <label style="color: #e67e22; font-weight: 700;">MONTO TOTAL A PAGAR (Bs.)</label>
-                    <input type="number" step="0.01" id="nc_monto_total" required placeholder="0.00" style="border-color: #e67e22; font-weight: bold; font-size: 16px;">
-                    <small style="color: #888; margin-top: 4px;">Ingresa el monto total que el cliente pagará por este producto</small>
+                <!-- NUEVOS CAMPOS -->
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label style="color: #e67e22; font-weight: 700;">PRECIO COSTO BRUTO (Bs.)</label>
+                        <input type="number" step="0.01" id="nc_costo_bruto" required placeholder="0.00" style="border-color: #e67e22;">
+                        <small style="color:#888;">Precio real pagado por la compra del producto.</small>
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #e67e22; font-weight: 700;">MONTO TOTAL A PAGAR (Bs.)</label>
+                        <input type="number" step="0.01" id="nc_monto_total" required placeholder="0.00" style="border-color: #e67e22; font-weight: bold; font-size: 16px;">
+                        <small style="color:#888;">Monto total que el cliente pagará a crédito.</small>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label style="color: #2a9d8f; font-weight: 700;">GANANCIA ESTIMADA (Bs.)</label>
+                    <input type="text" id="nc_ganancia" readonly style="background:#f0f9fa; font-weight:bold; color:#0f4c5c; font-size:15px;">
+                </div>
+                <div class="form-group">
+                    <label style="color: #0f4c5c; font-weight: 700;">ORIGEN DEL CAPITAL *</label>
+                    <select id="nc_origen" required>
+                        <option value="">-- Seleccionar --</option>
+                        <option value="Capital Abonado">Capital Abonado (Aportes de inversionistas)</option>
+                        <option value="Reinversion">Reinversión (Ganancias disponibles)</option>
+                    </select>
+                    <small style="color:#888;">El dinero para financiar esta operación proviene de...</small>
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eef2f5;">
                     <button type="button" class="btn btn-danger" onclick="cerrarModalCliente()"><i class="fas fa-times"></i> Cancelar</button>
@@ -391,6 +472,20 @@
     <div id="modalReporte" class="modal">
         <div class="modal-content">
             <h3><i class="fas fa-chart-bar"></i> Reporte General de Cobranzas</h3>
+            <!-- Resumen Financiero -->
+            <div class="resumen-financiero" id="resumenFinanciero">
+                <div class="item"><div class="label">Capital Total Aportado</div><div class="valor" id="rf_capital_total">0.00</div></div>
+                <div class="item"><div class="label">Capital Disponible</div><div class="valor" id="rf_capital_disponible">0.00</div></div>
+                <div class="item"><div class="label">Ganancia Total Generada</div><div class="valor positivo" id="rf_ganancia_total">0.00</div></div>
+                <div class="item"><div class="label">Total Reinvertido</div><div class="valor" id="rf_total_reinvertido">0.00</div></div>
+                <div class="item"><div class="label">Ganancia Disponible para Reinversión</div><div class="valor positivo" id="rf_ganancia_disponible">0.00</div></div>
+                <div class="item"><div class="label">Total Ganancias Retiradas</div><div class="valor negativo" id="rf_total_retirado">0.00</div></div>
+            </div>
+            <!-- Botón Retirar Ganancias -->
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
+                <button id="btnRetirarGanancia" class="btn btn-warning" onclick="abrirModalRetiro()" style="display:none;"><i class="fas fa-hand-holding-usd"></i> Retirar Ganancias</button>
+            </div>
+            <!-- Filtros -->
             <div class="reporte-filtros">
                 <div class="filtros-fecha">
                     <div class="form-group">
@@ -407,6 +502,7 @@
                     </div>
                 </div>
             </div>
+            <!-- Resumen pagos -->
             <div class="reporte-resumen" id="reporteResumen">
                 <div class="reporte-resumen-item">
                     <div class="numero" id="rep_total_pagos">0</div>
@@ -421,6 +517,7 @@
                     <div class="label">Clientes con Pagos</div>
                 </div>
             </div>
+            <!-- Tabla -->
             <div style="overflow-x: auto;">
                 <table class="reporte-tabla" id="reporteTabla">
                     <thead>
@@ -516,1091 +613,1677 @@
         </div>
     </div>
 
-    <!-- ====== PLANTILLAS PDF (OCULTAS) ====== -->
-    <div id="reciboCartaPDF">
-        <div class="pdf-header">
-            <div class="pdf-logo"><img src="/logoidn.png" alt="Logo" onerror="this.style.display='none'"><span class="pdf-logo-text">INTEGRACIÓN TECNOLÓGICA</span></div>
-            <div class="pdf-title"><h3>RECIBO DE PAGO DE CUOTA A CRÉDITO</h3><p><strong>Recibo N°:</strong> <span id="p_recibo" class="pdf-numero-recibo"></span></p></div>
-        </div>
-        <div class="pdf-grid">
-            <div class="pdf-box"><p><strong>Cliente:</strong> <span id="p_cliente"></span></p><p><strong>C.I.:</strong> <span id="p_ci"></span></p><p><strong>Dirección:</strong> <span id="p_direccion"></span></p></div>
-            <div class="pdf-box"><p><strong>Equipo:</strong> <span id="p_equipo"></span></p><p><strong>Marca/Modelo:</strong> <span id="p_marca"></span></p><p><strong>IMEI/Serie:</strong> <span id="p_imei"></span></p></div>
-        </div>
-        <p class="pdf-concepto">CONCEPTO: Venta de Equipos Tecnológicos a Crédito</p>
-        <table class="pdf-table">
-            <thead><tr><th style="width:40%;">Detalle / Concepto</th><th style="width:20%;">Mes</th><th style="width:20%;">Estado / Cuota</th><th style="width:20%;">Total Bs.</th></tr></thead>
-            <tbody><tr><td>Cuota correspondiente a crédito contratado</td><td style="text-align:center;"><span id="p_mes"></span></td><td style="text-align:center;"><span id="p_estado"></span></td><td style="text-align:center;font-weight:bold;"><span id="p_monto"></span> Bs.</td></tr></tbody>
-        </table>
-        <div class="pdf-detalle">
-            <p><strong>Monto en Literal:</strong> <span id="p_literal"></span></p>
-            <p><strong>Observaciones:</strong> <span id="p_obs"></span></p>
-            <p><strong>Fecha de Registro:</strong> <span id="p_fecha"></span></p>
-        </div>
-        <div class="pdf-firmas">
-            <div class="pdf-firma">Entregué Conforme</div>
-            <div class="pdf-firma">Recibí Conforme</div>
-        </div>
-        <div class="pdf-footer">
-            <p><strong>Warnes, Santa Cruz, Bolivia | Tel.: 7086212 Lic. Mauricio Ribera | Tel.: 71414917 Lic. Rene Moreira</strong></p>
-            <p><em>En Integración Tecnológica, valoramos que nos permitas acompañarte en tu crecimiento. Este recibo es el respaldo de tu pago.</em></p>
+    <!-- ====== MODAL RETIRO DE GANANCIAS ====== -->
+    <div id="modalRetiro" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-hand-holding-usd"></i> Retirar Ganancias</h3>
+            <form id="formRetiro">
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Persona que recibe</label>
+                        <input type="text" id="ret_persona" required placeholder="Nombre completo">
+                    </div>
+                    <div class="form-group">
+                        <label>Monto (Bs.)</label>
+                        <input type="number" step="0.01" id="ret_monto" required placeholder="0.00">
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Fecha</label>
+                        <input type="date" id="ret_fecha" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Hora</label>
+                        <input type="time" id="ret_hora" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Observación</label>
+                    <input type="text" id="ret_obs" placeholder="Opcional">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eef2f5;">
+                    <button type="button" class="btn btn-danger" onclick="cerrarModalRetiro()"><i class="fas fa-times"></i> Cancelar</button>
+                    <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> Confirmar Retiro</button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <div id="extractoPDF">
+        <!-- ============================================================
+         PLANTILLAS PDF (OCULTAS)
+         ============================================================
+         Estas plantillas se usan para generar documentos PDF mediante 
+         html2canvas + jsPDF. Cada una tiene su propio ID y estructura.
+         Si necesitas modificar el diseño de algún PDF, edita aquí.
+    ============================================================ -->
+
+    <!-- === RECIBO INDIVIDUAL === -->
+    <div id="reciboCartaPDF" style="position: absolute; left: -9999px; top: 0; width: 750px; padding: 30px; background: white; font-family: 'Times New Roman', Arial, serif; font-size: 12px; color: #000; line-height: 1.5; z-index: -1;">
         <div class="pdf-header">
-            <div class="pdf-logo"><img src="/logoidn.png" alt="Logo" onerror="this.style.display='none'"><span class="pdf-logo-text">INTEGRACIÓN TECNOLÓGICA</span></div>
-            <div class="pdf-title"><h3>EXTRACTO DE PAGOS</h3><p><strong>Fecha de emisión:</strong> <span id="ext_fecha_emision"></span></p></div>
+            <div class="pdf-logo">
+                <img src="/logoidn.png" alt="Logo" style="height:70px; margin-right:10px; object-fit:contain;" />
+                <div>
+                    <div class="pdf-logo-text">INTEGRACIÓN TECNOLÓGICA</div>
+                    <div style="font-size:11px; color:#555;">Tecnología a tu alcance, paso a paso</div>
+                </div>
+            </div>
+            <div class="pdf-title">
+                <h3>COMPROBANTE DE PAGO</h3>
+                <p><strong>N° Recibo:</strong> <span id="p_recibo">000000</span></p>
+            </div>
         </div>
+
         <div class="pdf-grid">
-            <div class="pdf-box"><p><strong>Cliente:</strong> <span id="ext_pdf_cliente"></span></p><p><strong>C.I.:</strong> <span id="ext_pdf_ci"></span></p><p><strong>Dirección:</strong> <span id="ext_pdf_direccion"></span></p></div>
-            <div class="pdf-box"><p><strong>Equipo:</strong> <span id="ext_pdf_equipo"></span></p><p><strong>Marca/Modelo:</strong> <span id="ext_pdf_marca"></span></p><p><strong>Total Pagado:</strong> <span id="ext_pdf_total"></span> Bs.</p></div>
+            <div class="pdf-box">
+                <p><strong>Cliente:</strong> <span id="p_cliente"></span></p>
+                <p><strong>C.I.:</strong> <span id="p_ci"></span></p>
+                <p><strong>Dirección:</strong> <span id="p_direccion"></span></p>
+            </div>
+            <div class="pdf-box">
+                <p><strong>Equipo:</strong> <span id="p_equipo"></span></p>
+                <p><strong>Marca / Modelo:</strong> <span id="p_marca"></span></p>
+                <p><strong>IMEI / Serie:</strong> <span id="p_imei"></span></p>
+            </div>
         </div>
-        <p style="margin:15px 0;font-weight:bold;">DETALLE DE PAGOS REALIZADOS</p>
-        <table class="pdf-table">
-            <thead><tr><th style="width:8%;">#</th><th style="width:15%;">Recibo</th><th style="width:20%;">Fecha</th><th style="width:17%;">Mes</th><th style="width:20%;">Estado</th><th style="width:20%;text-align:right;">Monto (Bs.)</th></tr></thead>
+
+        <div class="pdf-concepto">
+            <p><strong>Mes afectado:</strong> <span id="p_mes"></span></p>
+            <p><strong>Estado / Cuota:</strong> <span id="p_estado"></span></p>
+        </div>
+
+        <div class="pdf-detalle">
+            <p><strong>Monto cancelado:</strong> <span id="p_monto">0.00</span> Bs.</p>
+            <p><strong>Monto literal:</strong> <span id="p_literal"></span></p>
+            <p><strong>Observaciones:</strong> <span id="p_obs"></span></p>
+            <p><strong>Fecha y hora:</strong> <span id="p_fecha"></span></p>
+        </div>
+
+        <div class="pdf-firmas">
+            <div class="pdf-firma">Firma del Cliente</div>
+            <div class="pdf-firma">Firma del Cobrador</div>
+        </div>
+
+        <div class="pdf-footer">
+            <p><em>Este comprobante es válido como constancia de pago.</em></p>
+            <p>INTEGRACIÓN TECNOLÓGICA - Teléfono: +591  71414917 - 70868212</p>
+            <p>Valoramos que nos permitas acompañarte en tu crecimiento</p>
+        </div>
+    </div>
+
+    <!-- === EXTRACTO DE PAGOS === -->
+    <div id="extractoPDF" style="position: absolute; left: -9999px; top: 0; width: 750px; padding: 30px; background: white; font-family: 'Times New Roman', Arial, serif; font-size: 12px; color: #000; line-height: 1.5; z-index: -1;">
+        <div class="pdf-header">
+            <div class="pdf-logo">
+                <img src="/logoidn.png" alt="Logo" style="height:70px; margin-right:10px; object-fit:contain;" />
+                <div>
+                    <div class="pdf-logo-text">INTEGRACIÓN TECNOLÓGICA</div>
+                    <div style="font-size:11px; color:#555;">Tecnología a tu alcance, paso a paso</div>
+                </div>
+            </div>
+            <div class="pdf-title">
+                <h3>EXTRACTO DE PAGOS</h3>
+                <p>Fecha de emisión: <span id="ext_fecha_emision"></span></p>
+            </div>
+        </div>
+
+        <div class="extracto-cliente-info" style="background:#f8fafc; padding:12px; border-radius:8px; margin-bottom:12px; border:1px solid #e2e8f0;">
+            <p><strong>Cliente:</strong> <span id="ext_pdf_cliente"></span></p>
+            <p><strong>C.I.:</strong> <span id="ext_pdf_ci"></span></p>
+            <p><strong>Dirección:</strong> <span id="ext_pdf_direccion"></span></p>
+            <p><strong>Equipo:</strong> <span id="ext_pdf_equipo"></span> - <span id="ext_pdf_marca"></span></p>
+        </div>
+
+        <table class="pdf-table" style="width:100%; border-collapse:collapse; margin:15px 0;">
+            <thead>
+                <tr>
+                    <th class="text-center" style="border:1px solid #333; padding:8px; background:#f0f0f0;">#</th>
+                    <th class="text-center" style="border:1px solid #333; padding:8px; background:#f0f0f0;">Recibo</th>
+                    <th class="text-center" style="border:1px solid #333; padding:8px; background:#f0f0f0;">Fecha</th>
+                    <th class="text-center" style="border:1px solid #333; padding:8px; background:#f0f0f0;">Mes</th>
+                    <th class="text-center" style="border:1px solid #333; padding:8px; background:#f0f0f0;">Estado</th>
+                    <th class="text-right" style="border:1px solid #333; padding:8px; background:#f0f0f0;">Monto (Bs.)</th>
+                </tr>
+            </thead>
             <tbody id="extractoPdfTbody"></tbody>
         </table>
-        <div style="margin-top:15px;text-align:right;font-size:14px;font-weight:bold;padding:10px;border-top:2px solid #000;">
-            TOTAL PAGADO: <span id="ext_pdf_total_final"></span> Bs.
+
+        <div class="extracto-total" style="font-weight:bold; font-size:14px; text-align:right; padding:8px; border-top:2px solid #0f4c5c;">
+            TOTAL PAGADO: <span id="ext_pdf_total_final">0.00</span> Bs.
         </div>
+
         <div class="pdf-footer">
-            <p><strong>Warnes, Santa Cruz, Bolivia | Tel.: 7086212 Lic. Mauricio Ribera | Tel.: 71414917 Lic. Rene Moreira</strong></p>
-            <p><em>En Integración Tecnológica, valoramos que nos permitas acompañarte en tu crecimiento. Este extracto es el respaldo de tus pagos.</em></p>
+            <p><em>Documento generado automáticamente.</em></p>
+            <p>INTEGRACIÓN TECNOLÓGICA - Teléfono: +591  71414917 - 70868212</p>
+            <p>valoramos que nos permitas acompañarte en tu crecimiento</p>
         </div>
     </div>
 
-    <div id="reportePDF">
+    <!-- === REPORTE GENERAL === -->
+    <div id="reportePDF" style="position: absolute; left: -9999px; top: 0; width: 750px; padding: 30px; background: white; font-family: 'Times New Roman', Arial, serif; font-size: 12px; color: #000; line-height: 1.5; z-index: -1;">
         <div class="pdf-header">
-            <div class="pdf-logo"><img src="/logoidn.png" alt="Logo" onerror="this.style.display='none'"><span class="pdf-logo-text">INTEGRACIÓN TECNOLÓGICA</span></div>
-            <div class="pdf-title"><h3>REPORTE GENERAL DE COBRANZAS</h3><p><strong>Fecha de emisión:</strong> <span id="rep_fecha_emision"></span></p><p><strong>Periodo:</strong> <span id="rep_periodo"></span></p></div>
+            <div class="pdf-logo">
+                <img src="/logoidn.png" alt="Logo" style="height:70px; margin-right:10px; object-fit:contain;" />
+                <div>
+                    <div class="pdf-logo-text">INTEGRACIÓN TECNOLÓGICA</div>
+                    <div style="font-size:11px; color:#555;">Tecnología a tu alcance, paso a paso</div>
+                </div>
+            </div>
+            <div class="pdf-title">
+                <h3>REPORTE GENERAL DE COBRANZAS</h3>
+                <p>Periodo: <span id="rep_periodo"></span></p>
+                <p>Emisión: <span id="rep_fecha_emision"></span></p>
+            </div>
         </div>
-        <div style="margin:15px 0;display:flex;gap:30px;justify-content:center;">
-            <div><strong>Total Pagos:</strong> <span id="rep_pdf_total_pagos"></span></div>
-            <div><strong>Monto Total:</strong> <span id="rep_pdf_total_monto"></span> Bs.</div>
-            <div><strong>Clientes:</strong> <span id="rep_pdf_clientes"></span></div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:15px;">
+            <div style="background:#e0f2f1; padding:10px; border-radius:8px; text-align:center;">
+                <div style="font-size:20px; font-weight:bold; color:#0f4c5c;" id="rep_pdf_total_pagos">0</div>
+                <div style="font-size:11px; color:#475569;">Total Pagos</div>
+            </div>
+            <div style="background:#e0f2f1; padding:10px; border-radius:8px; text-align:center;">
+                <div style="font-size:20px; font-weight:bold; color:#0f4c5c;" id="rep_pdf_total_monto">0.00</div>
+                <div style="font-size:11px; color:#475569;">Monto Total (Bs.)</div>
+            </div>
+            <div style="background:#e0f2f1; padding:10px; border-radius:8px; text-align:center;">
+                <div style="font-size:20px; font-weight:bold; color:#0f4c5c;" id="rep_pdf_clientes">0</div>
+                <div style="font-size:11px; color:#475569;">Clientes con Pagos</div>
+            </div>
         </div>
-        <p style="margin:15px 0;font-weight:bold;">DETALLE DE TODOS LOS PAGOS</p>
-        <table class="pdf-table">
-            <thead><tr><th style="width:5%;">#</th><th style="width:12%;">Recibo</th><th style="width:22%;">Cliente</th><th style="width:10%;">CI</th><th style="width:15%;">Fecha</th><th style="width:12%;">Mes</th><th style="width:12%;">Estado</th><th style="width:12%;text-align:right;">Monto (Bs.)</th></tr></thead>
+
+        <table class="pdf-table" style="width:100%; border-collapse:collapse; margin:15px 0;">
+            <thead>
+                <tr>
+                    <th class="text-center" style="border:1px solid #333; padding:8px; background:#f0f0f0;">#</th>
+                    <th class="text-center" style="border:1px solid #333; padding:8px; background:#f0f0f0;">Recibo</th>
+                    <th style="border:1px solid #333; padding:8px; background:#f0f0f0;">Cliente</th>
+                    <th class="text-center" style="border:1px solid #333; padding:8px; background:#f0f0f0;">CI</th>
+                    <th class="text-center" style="border:1px solid #333; padding:8px; background:#f0f0f0;">Fecha</th>
+                    <th class="text-center" style="border:1px solid #333; padding:8px; background:#f0f0f0;">Mes</th>
+                    <th class="text-center" style="border:1px solid #333; padding:8px; background:#f0f0f0;">Estado</th>
+                    <th class="text-right" style="border:1px solid #333; padding:8px; background:#f0f0f0;">Monto (Bs.)</th>
+                </tr>
+            </thead>
             <tbody id="reportePdfTbody"></tbody>
         </table>
-        <div style="margin-top:15px;text-align:right;font-size:14px;font-weight:bold;padding:10px;border-top:2px solid #000;">
-            TOTAL GENERAL: <span id="rep_pdf_total_final"></span> Bs.
+
+        <div style="font-weight:bold; font-size:14px; text-align:right; padding:8px; border-top:2px solid #0f4c5c;">
+            TOTAL GENERAL: <span id="rep_pdf_total_final">0.00</span> Bs.
         </div>
+
         <div class="pdf-footer">
-            <p><strong>Warnes, Santa Cruz, Bolivia | Tel.: 7086212 Lic. Mauricio Ribera | Tel.: 71414917 Lic. Rene Moreira</strong></p>
-            <p><em>En Integración Tecnológica, valoramos que nos permitas acompañarte en tu crecimiento. Este reporte es el respaldo de todas las cobranzas realizadas.</em></p>
+            <p><em>Reporte generado automáticamente.</em></p>
+            <p>INTEGRACIÓN TECNOLÓGICA - Teléfono: +591  71414917 - 70868212</p>
+            <p>valoramos que nos permitas acompañarte en tu crecimiento</p>
         </div>
     </div>
 
+    <!-- === RETIRO DE GANANCIAS === -->
+    <div id="retiroPDF" style="position: absolute; left: -9999px; top: 0; width: 750px; padding: 30px; background: white; font-family: 'Times New Roman', Arial, serif; font-size: 12px; color: #000; line-height: 1.5; z-index: -1;">
+        <div class="pdf-header">
+            <div class="pdf-logo">
+                <img src="/logoidn.png" alt="Logo" style="height:70px; margin-right:10px; object-fit:contain;" />
+                <div>
+                    <div class="pdf-logo-text">INTEGRACIÓN TECNOLÓGICA</div>
+                    <div style="font-size:11px; color:#555;">Tecnología a tu alcance, paso a paso</div>
+                </div>
+            </div>
+            <div class="pdf-title">
+                <h3>COMPROBANTE DE RETIRO DE GANANCIAS</h3>
+                <p><strong>Código:</strong> <span id="rt_codigo"></span></p>
+            </div>
+        </div>
+
+        <div class="pdf-grid">
+            <div class="pdf-box">
+                <p><strong>Persona que recibe:</strong> <span id="rt_persona"></span></p>
+                <p><strong>Monto retirado:</strong> <span id="rt_monto">0.00</span> Bs.</p>
+            </div>
+            <div class="pdf-box">
+                <p><strong>Fecha:</strong> <span id="rt_fecha"></span></p>
+                <p><strong>Hora:</strong> <span id="rt_hora"></span></p>
+            </div>
+        </div>
+
+        <div class="pdf-detalle">
+            <p><strong>Monto literal:</strong> <span id="rt_literal"></span></p>
+            <p><strong>Observaciones:</strong> <span id="rt_obs"></span></p>
+            <hr style="margin:10px 0;" />
+            <p><strong>Saldo antes del retiro:</strong> <span id="rt_saldo_antes">0.00</span> Bs.</p>
+            <p><strong>Monto retirado:</strong> <span id="rt_monto_retirado">0.00</span> Bs.</p>
+            <p><strong>Saldo después del retiro:</strong> <span id="rt_saldo_despues">0.00</span> Bs.</p>
+        </div>
+
+        <div class="pdf-firmas">
+            <div class="pdf-firma">Firma del Receptor</div>
+            <div class="pdf-firma">Firma del Administrador</div>
+        </div>
+
+        <div class="pdf-footer">
+            <p><em>Este comprobante acredita el retiro de ganancias.</em></p>
+            <p>INTEGRACIÓN TECNOLÓGICA - Teléfono: +591  71414917 - 70868212</p>
+            <p>valoramos que nos permitas acompañarte en tu crecimiento</p>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         FIN DE PLANTILLAS PDF
+         ============================================================ -->
     <!-- ====== SCRIPT PRINCIPAL ====== -->
     <script>
-        // ============================================================
-        // CONFIGURACIÓN SUPABASE (CLIENTE)
-        // ============================================================
-        const SUPABASE_URL = 'https://jzphjuzluogyciyzlkad.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_KJIcDOUmiiaJV-pzZImeCg_o21_C01D';
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+       // ============================================================
+// CONFIGURACIÓN SUPABASE (CLIENTE)
+// ============================================================
+const SUPABASE_URL = 'https://jzphjuzluogyciyzlkad.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_KJIcDOUmiiaJV-pzZImeCg_o21_C01D';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // ============================================================
-        // AUTENTICACIÓN Y TOKEN
-        // ============================================================
-        function getAccessToken() {
-            return localStorage.getItem('supabaseAccessToken');
-        }
+// ============================================================
+// AUTENTICACIÓN Y TOKEN
+// ============================================================
+function getAccessToken() {
+    return localStorage.getItem('supabaseAccessToken');
+}
 
-        function getUserEmail() {
-            try {
-                const session = JSON.parse(localStorage.getItem('supabaseSession'));
-                return session?.user?.email || 'Usuario';
-            } catch {
-                return 'Usuario';
-            }
-        }
+function getUserEmail() {
+    return localStorage.getItem('userEmail') || 'Usuario';
+}
 
-        document.getElementById('userEmail').textContent = getUserEmail();
+function getUserRole() {
+    return localStorage.getItem('userRole') || '';
+}
 
-        function cerrarSesion() {
+document.getElementById('userEmail').textContent = getUserEmail();
+const role = getUserRole();
+if (role) {
+    document.getElementById('userRoleBadge').textContent = role;
+    if (role === 'SUPER_USUARIO') {
+        document.getElementById('btnCapital').style.display = 'inline-flex';
+        document.getElementById('btnNuevoCliente').style.display = 'inline-flex';
+        document.getElementById('btnRetirarGanancia').style.display = 'inline-flex';
+        document.getElementById('btnEditar').style.display = 'inline-flex';
+    } else {
+        document.getElementById('btnCapital').style.display = 'none';
+        document.getElementById('btnNuevoCliente').style.display = 'none';
+        document.getElementById('btnRetirarGanancia').style.display = 'none';
+        document.getElementById('btnEditar').style.display = 'none';
+    }
+}
+
+function cerrarSesion() {
+    localStorage.removeItem('supabaseAccessToken');
+    localStorage.removeItem('supabaseSession');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userEmail');
+    window.location.href = '/login.html';
+}
+
+(async function checkAuth() {
+    const token = getAccessToken();
+    if (!token) {
+        window.location.href = '/login.html';
+        return;
+    }
+    try {
+        const { data: { user }, error } = await supabaseClient.auth.getUser(token);
+        if (error || !user) {
             localStorage.removeItem('supabaseAccessToken');
             localStorage.removeItem('supabaseSession');
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('userEmail');
             window.location.href = '/login.html';
         }
+    } catch (e) {
+        console.error('Error verificando token:', e);
+        window.location.href = '/login.html';
+    }
+})();
 
-        (async function checkAuth() {
-            const token = getAccessToken();
-            if (!token) {
-                window.location.href = '/login.html';
-                return;
-            }
-            try {
-                const { data: { user }, error } = await supabaseClient.auth.getUser(token);
-                if (error || !user) {
-                    localStorage.removeItem('supabaseAccessToken');
-                    localStorage.removeItem('supabaseSession');
-                    window.location.href = '/login.html';
+// ============================================================
+// FETCH CON AUTENTICACIÓN
+// ============================================================
+async function fetchWithAuth(url, options = {}) {
+    const token = getAccessToken();
+    if (!token) {
+        window.location.href = '/login.html';
+        throw new Error('No autenticado');
+    }
+    const headers = {
+        ...options.headers,
+        'Authorization': `Bearer ${token}`
+    };
+    const response = await fetch(url, { ...options, headers });
+    if (response.status === 401) {
+        localStorage.removeItem('supabaseAccessToken');
+        localStorage.removeItem('supabaseSession');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userEmail');
+        window.location.href = '/login.html';
+        throw new Error('Sesión expirada');
+    }
+    return response;
+}
+
+// ============================================================
+// VARIABLES GLOBALES
+// ============================================================
+let historialCompleto = [];
+let datosClienteActual = {};
+let extractoDatos = {};
+let reporteDatos = [];
+let reporteFiltrados = [];
+let clienteCargadoCI = '';
+let productoSeleccionadoId = null;
+let productoEditandoId = null; // para edición
+
+// ============================================================
+// INICIALIZACIÓN
+// ============================================================
+window.onload = function() {
+    obtenerSiguienteRecibo();
+    colocarMesActual();
+    const hoy = new Date();
+    const hace30 = new Date();
+    hace30.setDate(hoy.getDate() - 30);
+    document.getElementById('reporte_fecha_desde').value = hace30.toISOString().split('T')[0];
+    document.getElementById('reporte_fecha_hasta').value = hoy.toISOString().split('T')[0];
+    document.getElementById('deudores_mes').value = hoy.getMonth() + 1;
+    document.getElementById('deudores_anio').value = hoy.getFullYear();
+    document.getElementById('ret_fecha').value = hoy.toISOString().split('T')[0];
+    document.getElementById('ret_hora').value = hoy.toTimeString().slice(0,5);
+};
+
+// ============================================================
+// FUNCIONES DE UTILIDAD
+// ============================================================
+function numeroALiteral(monto) {
+    monto = parseFloat(monto);
+    if (isNaN(monto) || monto <= 0) return '';
+    const entero = Math.floor(monto);
+    const centavos = Math.round((monto - entero) * 100);
+    const strCentavos = (centavos < 10 ? '0' : '') + centavos;
+    const Unidades = num => ['', 'UN', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE'][num];
+    const Decenas = num => {
+        const d = Math.floor(num / 10);
+        const u = num % 10;
+        switch (d) {
+            case 1: return ['DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISEIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE'][u];
+            case 2: return u === 0 ? 'VEINTE' : 'VEINTI' + Unidades(u);
+            case 3: return u === 0 ? 'TREINTA' : 'TREINTA Y ' + Unidades(u);
+            case 4: return u === 0 ? 'CUARENTA' : 'CUARENTA Y ' + Unidades(u);
+            case 5: return u === 0 ? 'CINCUENTA' : 'CINCUENTA Y ' + Unidades(u);
+            case 6: return u === 0 ? 'SESENTA' : 'SESENTA Y ' + Unidades(u);
+            case 7: return u === 0 ? 'SETENTA' : 'SETENTA Y ' + Unidades(u);
+            case 8: return u === 0 ? 'OCHENTA' : 'OCHENTA Y ' + Unidades(u);
+            case 9: return u === 0 ? 'NOVENTA' : 'NOVENTA Y ' + Unidades(u);
+            default: return Unidades(u);
+        }
+    };
+    const Centenas = num => {
+        const c = Math.floor(num / 100);
+        const resto = num % 100;
+        if (num === 100) return 'CIEN';
+        switch (c) {
+            case 1: return 'CIENTO ' + Decenas(resto);
+            case 2: return 'DOSCIENTOS ' + Decenas(resto);
+            case 3: return 'TRESCIENTOS ' + Decenas(resto);
+            case 4: return 'CUATROCIENTOS ' + Decenas(resto);
+            case 5: return 'QUINIENTOS ' + Decenas(resto);
+            case 6: return 'SEISCIENTOS ' + Decenas(resto);
+            case 7: return 'SETECIENTOS ' + Decenas(resto);
+            case 8: return 'OCHOCIENTOS ' + Decenas(resto);
+            case 9: return 'NOVECIENTOS ' + Decenas(resto);
+            default: return Decenas(resto);
+        }
+    };
+    function convertirGrupo(num) { return num === 0 ? '' : Centenas(num); }
+    let miles = Math.floor(entero / 1000);
+    let unidades = entero % 1000;
+    let texto = '';
+    if (miles > 0) {
+        texto += (miles === 1) ? 'MIL ' : convertirGrupo(miles) + ' MIL ';
+    }
+    if (unidades > 0 || entero === 0) {
+        texto += convertirGrupo(unidades);
+    }
+    texto = texto.trim() || 'CERO';
+    return `${texto} CON ${strCentavos}/100 BOLIVIANOS`;
+}
+
+function actualizarMontoLiteral(valor) {
+    document.getElementById('c_literal').value = numeroALiteral(valor);
+}
+
+function colocarMesActual() {
+    const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    document.getElementById('c_mes').value = meses[new Date().getMonth()];
+}
+
+// ============================================================
+// CAPITAL E INVERSIONES
+// ============================================================
+function abrirModalCapital() {
+    document.getElementById('modalCapital').style.display = 'flex';
+    cargarAportes();
+}
+
+function cerrarModalCapital() {
+    document.getElementById('modalCapital').style.display = 'none';
+}
+
+async function cargarAportes() {
+    try {
+        const res = await fetchWithAuth('/capital/aportes');
+        const data = await res.json();
+        const tbody = document.getElementById('tablaAportes');
+        tbody.innerHTML = '';
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#888;">No hay aportes registrados.</td></tr>';
+            return;
+        }
+        data.forEach(ap => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${ap.inversionista}</td><td>${parseFloat(ap.monto).toFixed(2)}</td><td>${ap.fecha}</td><td>${ap.observacion || '-'}</td>`;
+            tbody.appendChild(tr);
+        });
+    } catch (error) {
+        console.error('Error cargando aportes:', error);
+    }
+}
+
+async function registrarAporte() {
+    const inversionista = document.getElementById('cap_nombre').value.trim();
+    const monto = document.getElementById('cap_monto').value;
+    const fecha = document.getElementById('cap_fecha').value;
+    const observacion = document.getElementById('cap_obs').value.trim();
+    if (!inversionista || !monto || isNaN(monto) || parseFloat(monto) <= 0 || !fecha) {
+        alert('Completa todos los campos obligatorios (nombre, monto, fecha).');
+        return;
+    }
+    try {
+        const res = await fetchWithAuth('/capital/aporte', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ inversionista, monto, fecha, observacion })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert('✅ Aporte registrado exitosamente.');
+            document.getElementById('cap_nombre').value = '';
+            document.getElementById('cap_monto').value = '';
+            document.getElementById('cap_fecha').value = '';
+            document.getElementById('cap_obs').value = '';
+            cargarAportes();
+        } else {
+            alert(data.error || 'Error al registrar aporte.');
+        }
+    } catch (error) {
+        alert('Error de conexión.');
+        console.error(error);
+    }
+}
+
+// ============================================================
+// CLIENTES Y PRODUCTOS
+// ============================================================
+function abrirModalCliente() {
+    if (getUserRole() !== 'SUPER_USUARIO') {
+        alert('No tienes permisos para registrar nuevos clientes.');
+        return;
+    }
+    // Resetear modo edición
+    productoEditandoId = null;
+    document.querySelector('#modalCliente h3').innerHTML = '<i class="fas fa-user-plus"></i> Registrar Nuevo Cliente / Producto';
+    const submitBtn = document.querySelector('#formNuevoCliente button[type="submit"]');
+    submitBtn.innerHTML = '<i class="fas fa-save"></i> Guardar Cliente';
+    document.getElementById('nc_ci').readOnly = false;
+
+    document.getElementById('modalCliente').style.display = 'flex';
+    const ci = document.getElementById('buscar_ci').value.trim();
+    if (ci && /^\d+$/.test(ci)) {
+        fetchWithAuth(`/buscar-cliente?ci=${encodeURIComponent(ci)}`)
+            .then(res => { if (res.ok) return res.json(); return null; })
+            .then(data => {
+                if (data && data.length > 0) {
+                    const p = data[0];
+                    document.getElementById('nc_ci').value = p.ci || '';
+                    document.getElementById('nc_ci').readOnly = true;
+                    document.getElementById('nc_nombre').value = p.cliente || '';
+                    document.getElementById('nc_direccion').value = p.direccion || '';
+                    document.getElementById('nc_equipo').value = '';
+                    document.getElementById('nc_marca').value = '';
+                    document.getElementById('nc_imei').value = '';
+                    document.getElementById('nc_cuotas').value = '';
+                    document.getElementById('nc_monto').value = '';
+                    document.getElementById('nc_monto_total').value = '';
+                    document.getElementById('nc_costo_bruto').value = '';
+                    document.getElementById('nc_ganancia').value = '';
                 }
-            } catch (e) {
-                console.error('Error verificando token:', e);
-                window.location.href = '/login.html';
-            }
-        })();
+            })
+            .catch(() => {});
+    } else {
+        document.getElementById('nc_ci').readOnly = false;
+        document.getElementById('nc_ci').value = '';
+        document.getElementById('nc_nombre').value = '';
+        document.getElementById('nc_direccion').value = '';
+        document.getElementById('nc_equipo').value = '';
+        document.getElementById('nc_marca').value = '';
+        document.getElementById('nc_imei').value = '';
+        document.getElementById('nc_cuotas').value = '';
+        document.getElementById('nc_monto').value = '';
+        document.getElementById('nc_monto_total').value = '';
+        document.getElementById('nc_costo_bruto').value = '';
+        document.getElementById('nc_ganancia').value = '';
+    }
+}
 
-        // ============================================================
-        // FETCH CON AUTENTICACIÓN
-        // ============================================================
-        async function fetchWithAuth(url, options = {}) {
-            const token = getAccessToken();
-            if (!token) {
-                window.location.href = '/login.html';
-                throw new Error('No autenticado');
-            }
-            const headers = {
-                ...options.headers,
-                'Authorization': `Bearer ${token}`
-            };
-            const response = await fetch(url, { ...options, headers });
-            if (response.status === 401) {
-                localStorage.removeItem('supabaseAccessToken');
-                localStorage.removeItem('supabaseSession');
-                window.location.href = '/login.html';
-                throw new Error('Sesión expirada');
-            }
-            return response;
+function cerrarModalCliente() {
+    document.getElementById('modalCliente').style.display = 'none';
+    productoEditandoId = null;
+    document.getElementById('nc_ci').readOnly = false;
+    // Restaurar título y botón
+    document.querySelector('#modalCliente h3').innerHTML = '<i class="fas fa-user-plus"></i> Registrar Nuevo Cliente / Producto';
+    const submitBtn = document.querySelector('#formNuevoCliente button[type="submit"]');
+    submitBtn.innerHTML = '<i class="fas fa-save"></i> Guardar Cliente';
+}
+
+// Abrir modal de edición
+function abrirModalEdicion() {
+    if (!clienteCargadoCI || !datosClienteActual) {
+        alert('Primero selecciona un cliente.');
+        return;
+    }
+    const p = datosClienteActual;
+    document.getElementById('nc_ci').value = p.ci;
+    document.getElementById('nc_ci').readOnly = true;
+    document.getElementById('nc_nombre').value = p.cliente;
+    document.getElementById('nc_direccion').value = p.direccion;
+    document.getElementById('nc_equipo').value = p.equipo;
+    document.getElementById('nc_marca').value = p.marcaModelo;
+    document.getElementById('nc_imei').value = p.imei;
+    document.getElementById('nc_cuotas').value = p.totalCuotas;
+    document.getElementById('nc_f_inicio').value = p.fechaInicio ? p.fechaInicio.split('T')[0] : '';
+    document.getElementById('nc_f_fin').value = p.fechaFin ? p.fechaFin.split('T')[0] : '';
+    document.getElementById('nc_monto').value = p.cuotaMonto;
+    document.getElementById('nc_monto_total').value = p.montoTotal;
+    document.getElementById('nc_costo_bruto').value = p.precioCostoBruto || '';
+    document.getElementById('nc_ganancia').value = p.ganancia || '0.00';
+    document.getElementById('nc_origen').value = p.origenCapital || '';
+
+    productoEditandoId = p.id;
+    document.querySelector('#modalCliente h3').innerHTML = '<i class="fas fa-edit"></i> Editar Cliente / Producto';
+    const submitBtn = document.querySelector('#formNuevoCliente button[type="submit"]');
+    submitBtn.innerHTML = '<i class="fas fa-save"></i> Actualizar Cliente';
+
+    document.getElementById('modalCliente').style.display = 'flex';
+}
+
+// Calcular ganancia en tiempo real
+document.getElementById('nc_costo_bruto').addEventListener('input', calcularGanancia);
+document.getElementById('nc_monto_total').addEventListener('input', calcularGanancia);
+
+function calcularGanancia() {
+    const costo = parseFloat(document.getElementById('nc_costo_bruto').value) || 0;
+    const total = parseFloat(document.getElementById('nc_monto_total').value) || 0;
+    const ganancia = total - costo;
+    document.getElementById('nc_ganancia').value = ganancia > 0 ? ganancia.toFixed(2) : '0.00';
+}
+
+// Submit del formulario (creación o edición)
+document.getElementById('formNuevoCliente').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    // ---- MODO EDICIÓN ----
+    if (productoEditandoId) {
+        const costoBruto = parseFloat(document.getElementById('nc_costo_bruto').value) || 0;
+        const montoTotal = parseFloat(document.getElementById('nc_monto_total').value) || 0;
+        const origen = document.getElementById('nc_origen').value;
+
+        if (costoBruto <= 0 || montoTotal <= 0) {
+            alert('El precio costo bruto y el monto total deben ser mayores a 0.');
+            return;
+        }
+        if (montoTotal <= costoBruto) {
+            alert('El monto total a pagar debe ser mayor que el costo bruto para generar ganancia.');
+            return;
+        }
+        if (!origen) {
+            alert('Selecciona un origen de capital.');
+            return;
         }
 
-        // ============================================================
-        // VARIABLES GLOBALES
-        // ============================================================
-        let historialCompleto = [];
-        let datosClienteActual = {};
-        let extractoDatos = {};
-        let reporteDatos = [];
-        let reporteFiltrados = [];
-        let clienteCargadoCI = '';
-        let productoSeleccionadoId = null;
-
-        // ============================================================
-        // INICIALIZACIÓN
-        // ============================================================
-        window.onload = function() {
-            obtenerSiguienteRecibo();
-            colocarMesActual();
-            const hoy = new Date();
-            const hace30 = new Date();
-            hace30.setDate(hoy.getDate() - 30);
-            document.getElementById('reporte_fecha_desde').value = hace30.toISOString().split('T')[0];
-            document.getElementById('reporte_fecha_hasta').value = hoy.toISOString().split('T')[0];
-            document.getElementById('deudores_mes').value = hoy.getMonth() + 1;
-            document.getElementById('deudores_anio').value = hoy.getFullYear();
+        const payload = {
+            precioCostoBruto: costoBruto,
+            montoTotal: montoTotal,
+            origenCapital: origen
         };
 
-        // ============================================================
-        // FUNCIONES DE UTILIDAD
-        // ============================================================
-        function numeroALiteral(monto) {
-            monto = parseFloat(monto);
-            if (isNaN(monto) || monto <= 0) return '';
-
-            const entero = Math.floor(monto);
-            const centavos = Math.round((monto - entero) * 100);
-            const strCentavos = (centavos < 10 ? '0' : '') + centavos;
-
-            const Unidades = num => ['', 'UN', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE'][num];
-            const Decenas = num => {
-                const d = Math.floor(num / 10);
-                const u = num % 10;
-                switch (d) {
-                    case 1: return ['DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISEIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE'][u];
-                    case 2: return u === 0 ? 'VEINTE' : 'VEINTI' + Unidades(u);
-                    case 3: return u === 0 ? 'TREINTA' : 'TREINTA Y ' + Unidades(u);
-                    case 4: return u === 0 ? 'CUARENTA' : 'CUARENTA Y ' + Unidades(u);
-                    case 5: return u === 0 ? 'CINCUENTA' : 'CINCUENTA Y ' + Unidades(u);
-                    case 6: return u === 0 ? 'SESENTA' : 'SESENTA Y ' + Unidades(u);
-                    case 7: return u === 0 ? 'SETENTA' : 'SETENTA Y ' + Unidades(u);
-                    case 8: return u === 0 ? 'OCHENTA' : 'OCHENTA Y ' + Unidades(u);
-                    case 9: return u === 0 ? 'NOVENTA' : 'NOVENTA Y ' + Unidades(u);
-                    default: return Unidades(u);
-                }
-            };
-            const Centenas = num => {
-                const c = Math.floor(num / 100);
-                const resto = num % 100;
-                if (num === 100) return 'CIEN';
-                switch (c) {
-                    case 1: return 'CIENTO ' + Decenas(resto);
-                    case 2: return 'DOSCIENTOS ' + Decenas(resto);
-                    case 3: return 'TRESCIENTOS ' + Decenas(resto);
-                    case 4: return 'CUATROCIENTOS ' + Decenas(resto);
-                    case 5: return 'QUINIENTOS ' + Decenas(resto);
-                    case 6: return 'SEISCIENTOS ' + Decenas(resto);
-                    case 7: return 'SETECIENTOS ' + Decenas(resto);
-                    case 8: return 'OCHOCIENTOS ' + Decenas(resto);
-                    case 9: return 'NOVECIENTOS ' + Decenas(resto);
-                    default: return Decenas(resto);
-                }
-            };
-            function convertirGrupo(num) { return num === 0 ? '' : Centenas(num); }
-
-            let miles = Math.floor(entero / 1000);
-            let unidades = entero % 1000;
-            let texto = '';
-            if (miles > 0) {
-                texto += (miles === 1) ? 'MIL ' : convertirGrupo(miles) + ' MIL ';
-            }
-            if (unidades > 0 || entero === 0) {
-                texto += convertirGrupo(unidades);
-            }
-            texto = texto.trim() || 'CERO';
-            return `${texto} CON ${strCentavos}/100 BOLIVIANOS`;
-        }
-
-        function actualizarMontoLiteral(valor) {
-            document.getElementById('c_literal').value = numeroALiteral(valor);
-        }
-
-        function colocarMesActual() {
-            const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-            document.getElementById('c_mes').value = meses[new Date().getMonth()];
-        }
-
-        // ============================================================
-        // CLIENTES Y PRODUCTOS
-        // ============================================================
-        function abrirModalCliente() {
-            document.getElementById('modalCliente').style.display = 'flex';
-            const ci = document.getElementById('buscar_ci').value.trim();
-            if (ci && /^\d+$/.test(ci)) {
-                fetchWithAuth(`/buscar-cliente?ci=${encodeURIComponent(ci)}`)
-                    .then(res => { if (res.ok) return res.json(); return null; })
-                    .then(data => {
-                        if (data && data.length > 0) {
-                            const p = data[0];
-                            document.getElementById('nc_ci').value = p.ci || '';
-                            document.getElementById('nc_ci').readOnly = true;
-                            document.getElementById('nc_nombre').value = p.cliente || '';
-                            document.getElementById('nc_direccion').value = p.direccion || '';
-                            document.getElementById('nc_equipo').value = '';
-                            document.getElementById('nc_marca').value = '';
-                            document.getElementById('nc_imei').value = '';
-                            document.getElementById('nc_cuotas').value = '';
-                            document.getElementById('nc_monto').value = '';
-                            document.getElementById('nc_monto_total').value = '';
-                        }
-                    })
-                    .catch(() => {});
+        try {
+            const res = await fetchWithAuth(`/actualizar-cliente/${productoEditandoId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alert('✅ Cliente actualizado correctamente.');
+                cerrarModalCliente();
+                // Recargar los datos del cliente
+                document.getElementById('buscar_ci').value = datosClienteActual.ci;
+                buscarCliente();
             } else {
-                document.getElementById('nc_ci').readOnly = false;
-                document.getElementById('nc_ci').value = '';
-                document.getElementById('nc_nombre').value = '';
-                document.getElementById('nc_direccion').value = '';
-                document.getElementById('nc_equipo').value = '';
-                document.getElementById('nc_marca').value = '';
-                document.getElementById('nc_imei').value = '';
-                document.getElementById('nc_cuotas').value = '';
-                document.getElementById('nc_monto').value = '';
-                document.getElementById('nc_monto_total').value = '';
+                alert(data.error || 'Error al actualizar.');
             }
+        } catch (err) {
+            alert('Error de conexión.');
+            console.error(err);
         }
+        return;
+    }
 
-        function cerrarModalCliente() {
-            document.getElementById('modalCliente').style.display = 'none';
-            document.getElementById('nc_ci').readOnly = false;
+    // ---- MODO CREACIÓN (código existente) ----
+    const ci = document.getElementById('nc_ci').value.trim();
+    if (!/^\d+$/.test(ci)) {
+        alert('El C.I. debe contener solo números.');
+        return;
+    }
+    const costoBruto = parseFloat(document.getElementById('nc_costo_bruto').value) || 0;
+    const montoTotal = parseFloat(document.getElementById('nc_monto_total').value) || 0;
+    if (costoBruto <= 0 || montoTotal <= 0) {
+        alert('El precio costo bruto y el monto total deben ser mayores a 0.');
+        return;
+    }
+    if (montoTotal <= costoBruto) {
+        alert('El monto total a pagar debe ser mayor que el costo bruto para generar ganancia.');
+        return;
+    }
+    const origen = document.getElementById('nc_origen').value;
+    if (!origen) {
+        alert('Selecciona un origen de capital.');
+        return;
+    }
+
+    try {
+        const resExistente = await fetchWithAuth(`/buscar-cliente?ci=${encodeURIComponent(ci)}`);
+        let clienteExistente = null;
+        if (resExistente.ok) {
+            const data = await resExistente.json();
+            if (data.length > 0) clienteExistente = data[0];
         }
+        let nombreCliente = document.getElementById('nc_nombre').value.toUpperCase().trim();
+        if (clienteExistente) {
+            nombreCliente = clienteExistente.cliente;
+            if (!confirm(`⚠️ El cliente ${nombreCliente} ya existe.\n\n¿Desea agregar un NUEVO PRODUCTO para este cliente?`)) return;
+        }
+        const nuevo = {
+            ci: ci,
+            cliente: nombreCliente,
+            direccion: document.getElementById('nc_direccion').value.toUpperCase().trim(),
+            equipo: document.getElementById('nc_equipo').value.toUpperCase().trim(),
+            marcaModelo: document.getElementById('nc_marca').value.toUpperCase().trim(),
+            imei: document.getElementById('nc_imei').value.trim(),
+            totalCuotas: parseInt(document.getElementById('nc_cuotas').value) || 0,
+            fechaInicio: document.getElementById('nc_f_inicio').value,
+            fechaFin: document.getElementById('nc_f_fin').value,
+            cuotaMonto: parseFloat(document.getElementById('nc_monto').value) || 0,
+            montoTotal: montoTotal,
+            precioCostoBruto: costoBruto,
+            origenCapital: origen
+        };
 
-        document.getElementById('formNuevoCliente').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const ci = document.getElementById('nc_ci').value.trim();
-            if (!/^\d+$/.test(ci)) {
-                alert('El C.I. debe contener solo números.');
-                return;
-            }
-            try {
-                const resExistente = await fetchWithAuth(`/buscar-cliente?ci=${encodeURIComponent(ci)}`);
-                let clienteExistente = null;
-                if (resExistente.ok) {
-                    const data = await resExistente.json();
-                    if (data.length > 0) clienteExistente = data[0];
-                }
-                let nombreCliente = document.getElementById('nc_nombre').value.toUpperCase().trim();
-                if (clienteExistente) {
-                    nombreCliente = clienteExistente.cliente;
-                    if (!confirm(`⚠️ El cliente ${nombreCliente} ya existe.\n\n¿Desea agregar un NUEVO PRODUCTO para este cliente?`)) return;
-                }
-                const nuevo = {
-                    ci: ci,
-                    cliente: nombreCliente,
-                    direccion: document.getElementById('nc_direccion').value.toUpperCase().trim(),
-                    equipo: document.getElementById('nc_equipo').value.toUpperCase().trim(),
-                    marcaModelo: document.getElementById('nc_marca').value.toUpperCase().trim(),
-                    imei: document.getElementById('nc_imei').value.trim(),
-                    totalCuotas: parseInt(document.getElementById('nc_cuotas').value) || 0,
-                    fechaInicio: document.getElementById('nc_f_inicio').value,
-                    fechaFin: document.getElementById('nc_f_fin').value,
-                    cuotaMonto: parseFloat(document.getElementById('nc_monto').value) || 0,
-                    montoTotal: parseFloat(document.getElementById('nc_monto_total').value) || 0
-                };
-                const res = await fetchWithAuth('/agregar-cliente', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(nuevo)
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    alert(data.mensaje || '✅ Registrado exitosamente.');
-                    document.getElementById('formNuevoCliente').reset();
-                    cerrarModalCliente();
-                    document.getElementById('buscar_ci').value = nuevo.ci;
-                    buscarCliente();
-                } else {
-                    alert(data.error || 'Error al registrar.');
-                }
-            } catch (err) {
-                alert('Error al conectar con el servidor.');
-                console.error(err);
-            }
+        const res = await fetchWithAuth('/agregar-cliente', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(nuevo)
         });
-
-        // ============================================================
-        // BUSCAR CLIENTE (mejorado: por CI o nombre)
-        // ============================================================
-        async function buscarCliente() {
-            const query = document.getElementById('buscar_ci').value.trim();
-            if (!query) return alert('Ingresa un C.I. o nombre');
-            let url;
-            if (/^\d+$/.test(query)) {
-                url = `/buscar-cliente?ci=${encodeURIComponent(query)}`;
-            } else {
-                url = `/buscar-cliente?nombre=${encodeURIComponent(query)}`;
-            }
-            try {
-                const res = await fetchWithAuth(url);
-                if (!res.ok) {
-                    const errorData = await res.json();
-                    alert(errorData.error || 'Cliente no encontrado');
-                    return;
-                }
-                const productos = await res.json();
-                if (productos.length === 0) {
-                    alert('No se encontraron clientes');
-                    return;
-                }
-                if (productos.length === 1) {
-                    // Asegurar que el campo de búsqueda tenga el CI
-                    document.getElementById('buscar_ci').value = productos[0].ci;
-                    cargarProductoCliente(productos[0]);
-                } else {
-                    let mensaje = 'Se encontraron varios clientes:\n\n';
-                    productos.forEach((p, i) => {
-                        mensaje += `${i+1}. ${p.cliente} - ${p.equipo} (CI: ${p.ci})\n`;
-                    });
-                    mensaje += '\nSelecciona el número correspondiente:';
-                    const seleccion = prompt(mensaje);
-                    if (!seleccion) return;
-                    const index = parseInt(seleccion) - 1;
-                    if (isNaN(index) || index < 0 || index >= productos.length) {
-                        alert('Selección inválida');
-                        return;
-                    }
-                    document.getElementById('buscar_ci').value = productos[index].ci;
-                    cargarProductoCliente(productos[index]);
-                }
-            } catch (err) {
-                alert('Error al conectar con el servidor');
-                console.error(err);
-            }
+        const data = await res.json();
+        if (res.ok) {
+            alert(data.mensaje || '✅ Registrado exitosamente.');
+            document.getElementById('formNuevoCliente').reset();
+            cerrarModalCliente();
+            document.getElementById('buscar_ci').value = nuevo.ci;
+            buscarCliente();
+        } else {
+            alert(data.error || 'Error al registrar.');
         }
+    } catch (err) {
+        alert('Error al conectar con el servidor.');
+        console.error(err);
+    }
+});
 
-        function cargarProductoCliente(producto) {
-            clienteCargadoCI = producto.ci;
-            datosClienteActual = producto;
-            productoSeleccionadoId = producto.id;
-
-            document.getElementById('buscar_ci').value = producto.ci; // Asegurar CI numérico
-            document.getElementById('c_nombre').value = producto.cliente || '';
-            document.getElementById('c_direccion').value = producto.direccion || '';
-            document.getElementById('c_equipo').value = producto.equipo || '';
-            document.getElementById('c_marca').value = producto.marcaModelo || '';
-            document.getElementById('c_imei').value = producto.imei || '';
-
-            const cuotaMonto = producto.cuotaMonto || '';
-            document.getElementById('c_cuota').value = cuotaMonto;
-            actualizarMontoLiteral(cuotaMonto);
-
-            document.getElementById('estado_progreso').value = `📱 ${producto.equipo} | ${producto.marcaModelo} | Cuotas: ${producto.totalCuotas}`;
-            colocarMesActual();
-            cargarHistorial(producto.ci);
-
-            document.getElementById('btnExtracto').style.display = 'inline-flex';
-            document.getElementById('btnEliminar').style.display = 'inline-flex';
+// ============================================================
+// BUSCAR CLIENTE
+// ============================================================
+async function buscarCliente() {
+    const query = document.getElementById('buscar_ci').value.trim();
+    if (!query) return alert('Ingresa un C.I. o nombre');
+    let url;
+    if (/^\d+$/.test(query)) {
+        url = `/buscar-cliente?ci=${encodeURIComponent(query)}`;
+    } else {
+        url = `/buscar-cliente?nombre=${encodeURIComponent(query)}`;
+    }
+    try {
+        const res = await fetchWithAuth(url);
+        if (!res.ok) {
+            const errorData = await res.json();
+            alert(errorData.error || 'Cliente no encontrado');
+            return;
         }
-
-        // ============================================================
-        // HISTORIAL
-        // ============================================================
-        async function cargarHistorial(ci) {
-            try {
-                const res = await fetchWithAuth(`/historial/${ci}`);
-                historialCompleto = await res.json();
-                const proximaCuota = obtenerProximaCuota(historialCompleto);
-                document.getElementById('c_num_cuota').value = proximaCuota;
-                renderizarTabla(historialCompleto);
-                actualizarResumenCliente();
-            } catch (e) {
-                console.error(e);
-            }
+        const productos = await res.json();
+        if (productos.length === 0) {
+            alert('No se encontraron clientes');
+            return;
         }
-
-        function obtenerProximaCuota(historial) {
-            if (historial.length === 0) return 'CUOTA INICIAL';
-            let ultimoNumero = 0;
-            for (let item of historial) {
-                const estado = item.estadoCuota || '';
-                const match = estado.match(/CUOTA N° (\d+)/);
-                if (match) {
-                    const num = parseInt(match[1]);
-                    if (num > ultimoNumero) ultimoNumero = num;
-                }
-            }
-            if (ultimoNumero === 0) {
-                if (historial.some(item => item.estadoCuota && item.estadoCuota.includes('CUOTA INICIAL'))) {
-                    return 'CUOTA N° 1';
-                } else {
-                    return 'CUOTA INICIAL';
-                }
-            }
-            return `CUOTA N° ${ultimoNumero + 1}`;
-        }
-
-        function renderizarTabla(lista) {
-            const tbody = document.getElementById('tablaHistorial');
-            tbody.innerHTML = '';
-            if (lista.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#888; padding: 20px;">
-                    <i class="fas fa-inbox" style="font-size:20px;display:block;margin-bottom:6px;"></i>No se encontraron registros de pago.</td></tr>`;
+        if (productos.length === 1) {
+            document.getElementById('buscar_ci').value = productos[0].ci;
+            cargarProductoCliente(productos[0]);
+        } else {
+            let mensaje = 'Se encontraron varios clientes:\n\n';
+            productos.forEach((p, i) => {
+                mensaje += `${i+1}. ${p.cliente} - ${p.equipo} (CI: ${p.ci})\n`;
+            });
+            mensaje += '\nSelecciona el número correspondiente:';
+            const seleccion = prompt(mensaje);
+            if (!seleccion) return;
+            const index = parseInt(seleccion) - 1;
+            if (isNaN(index) || index < 0 || index >= productos.length) {
+                alert('Selección inválida');
                 return;
             }
-            const hoy = new Date();
-            lista.forEach((item) => {
-                const f = new Date(item.fecha).toLocaleString('es-BO');
-                const fechaItem = new Date(item.fecha);
-                const esHoy = fechaItem.toDateString() === hoy.toDateString();
-                const botonEliminar = esHoy 
-                    ? `<button class="btn btn-danger btn-small" onclick="eliminarCobranza(${item.id})"><i class="fas fa-trash"></i></button>` 
-                    : '';
-                const itemStr = JSON.stringify(item).replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                tbody.innerHTML += `
-                    <tr>
-                        <td><strong>${item.num_recibo || '000000'}</strong></td>
-                        <td>${f}</td>
-                        <td>${item.mes || '-'}</td>
-                        <td><span class="badge badge-info">${item.estadoCuota || '-'}</span></td>
-                        <td><strong>${item.cuota} Bs.</strong></td>
-                        <td>
-                            <div class="action-buttons" style="justify-content:center;">
-                                <button class="btn btn-info btn-small" onclick="generarPDF('${itemStr}')"><i class="fas fa-file-pdf"></i> PDF</button>
-                                <button class="btn btn-whatsapp btn-small" onclick="enviarWhatsApp('${itemStr}')"><i class="fab fa-whatsapp"></i></button>
-                                ${botonEliminar}
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
+            document.getElementById('buscar_ci').value = productos[index].ci;
+            cargarProductoCliente(productos[index]);
         }
+    } catch (err) {
+        alert('Error al conectar con el servidor');
+        console.error(err);
+    }
+}
 
-        function filtrarHistorial() {
-            const texto = document.getElementById('buscar_historial').value.toLowerCase().trim();
-            const filtrados = historialCompleto.filter(item => {
-                const search = `${item.cliente} ${item.ci} ${item.num_recibo} ${item.mes} ${item.estadoCuota}`.toLowerCase();
-                return search.includes(texto);
-            });
-            renderizarTabla(filtrados);
+function cargarProductoCliente(producto) {
+    clienteCargadoCI = producto.ci;
+    datosClienteActual = producto;
+    productoSeleccionadoId = producto.id;
+
+    document.getElementById('buscar_ci').value = producto.ci;
+    document.getElementById('c_nombre').value = producto.cliente || '';
+    document.getElementById('c_direccion').value = producto.direccion || '';
+    document.getElementById('c_equipo').value = producto.equipo || '';
+    document.getElementById('c_marca').value = producto.marcaModelo || '';
+    document.getElementById('c_imei').value = producto.imei || '';
+
+    const cuotaMonto = producto.cuotaMonto || '';
+    document.getElementById('c_cuota').value = cuotaMonto;
+    actualizarMontoLiteral(cuotaMonto);
+
+    document.getElementById('estado_progreso').value = `📱 ${producto.equipo} | ${producto.marcaModelo} | Cuotas: ${producto.totalCuotas}`;
+    colocarMesActual();
+    cargarHistorial(producto.ci);
+
+    document.getElementById('btnExtracto').style.display = 'inline-flex';
+    document.getElementById('btnEliminar').style.display = 'inline-flex';
+    document.getElementById('btnEditar').style.display = 'inline-flex';
+}
+
+// ============================================================
+// HISTORIAL, RESUMEN, COBRANZAS
+// ============================================================
+async function cargarHistorial(ci) {
+    try {
+        const res = await fetchWithAuth(`/historial/${ci}`);
+        historialCompleto = await res.json();
+        const proximaCuota = obtenerProximaCuota(historialCompleto);
+        document.getElementById('c_num_cuota').value = proximaCuota;
+        renderizarTabla(historialCompleto);
+        actualizarResumenCliente();
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function obtenerProximaCuota(historial) {
+    if (historial.length === 0) return 'CUOTA INICIAL';
+    let ultimoNumero = 0;
+    for (let item of historial) {
+        const estado = item.estadoCuota || '';
+        const match = estado.match(/CUOTA N° (\d+)/);
+        if (match) {
+            const num = parseInt(match[1]);
+            if (num > ultimoNumero) ultimoNumero = num;
         }
+    }
+    if (ultimoNumero === 0) {
+        if (historial.some(item => item.estadoCuota && item.estadoCuota.includes('CUOTA INICIAL'))) {
+            return 'CUOTA N° 1';
+        } else {
+            return 'CUOTA INICIAL';
+        }
+    }
+    return `CUOTA N° ${ultimoNumero + 1}`;
+}
 
-        // ============================================================
-        // RESUMEN CLIENTE
-        // ============================================================
-        function actualizarResumenCliente() {
-            const panel = document.getElementById('panelResumen');
-            if (!clienteCargadoCI || historialCompleto.length === 0 || !datosClienteActual || !datosClienteActual.totalCuotas) {
-                panel.style.display = 'none';
-                return;
-            }
-            const totalCuotas = datosClienteActual.totalCuotas;
-            const pagosRealizados = historialCompleto.length;
-            const totalPagado = historialCompleto.reduce((sum, item) => sum + (parseFloat(item.cuota) || 0), 0);
-            const montoTotal = parseFloat(datosClienteActual.montoTotal) || 0;
-            const saldoPendiente = montoTotal - totalPagado;
+function renderizarTabla(lista) {
+    const tbody = document.getElementById('tablaHistorial');
+    tbody.innerHTML = '';
+    if (lista.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#888; padding: 20px;">
+            <i class="fas fa-inbox" style="font-size:20px;display:block;margin-bottom:6px;"></i>No se encontraron registros de pago.</td></tr>`;
+        return;
+    }
+    const hoy = new Date();
+    lista.forEach((item) => {
+        const f = new Date(item.fecha).toLocaleString('es-BO');
+        const fechaItem = new Date(item.fecha);
+        const esHoy = fechaItem.toDateString() === hoy.toDateString();
+        const botonEliminar = esHoy 
+            ? `<button class="btn btn-danger btn-small" onclick="eliminarCobranza(${item.id})"><i class="fas fa-trash"></i></button>` 
+            : '';
+        const itemStr = JSON.stringify(item).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        tbody.innerHTML += `
+            <tr>
+                <td><strong>${item.num_recibo || '000000'}</strong></td>
+                <td>${f}</td>
+                <td>${item.mes || '-'}</td>
+                <td><span class="badge badge-info">${item.estadoCuota || '-'}</span></td>
+                <td><strong>${item.cuota} Bs.</strong></td>
+                <td>
+                    <div class="action-buttons" style="justify-content:center;">
+                        <button class="btn btn-info btn-small" onclick="generarPDF('${itemStr}')"><i class="fas fa-file-pdf"></i> PDF</button>
+                        <button class="btn btn-whatsapp btn-small" onclick="enviarWhatsApp('${itemStr}')"><i class="fab fa-whatsapp"></i></button>
+                        ${botonEliminar}
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+}
 
-            const proximaCuotaTexto = obtenerProximaCuota(historialCompleto);
+function filtrarHistorial() {
+    const texto = document.getElementById('buscar_historial').value.toLowerCase().trim();
+    const filtrados = historialCompleto.filter(item => {
+        const search = `${item.cliente} ${item.ci} ${item.num_recibo} ${item.mes} ${item.estadoCuota}`.toLowerCase();
+        return search.includes(texto);
+    });
+    renderizarTabla(filtrados);
+}
 
-            let estado = '', estadoClase = '';
-            if (pagosRealizados === 0) {
-                estado = '🔴 Sin pagos';
-                estadoClase = 'badge-danger';
-            } else if (pagosRealizados < totalCuotas) {
-                const hoy = new Date();
-                const fechaInicio = new Date(datosClienteActual.fechaInicio);
-                const mesesTranscurridos = (hoy.getFullYear() - fechaInicio.getFullYear()) * 12 + (hoy.getMonth() - fechaInicio.getMonth());
-                const cuotasEsperadas = Math.min(mesesTranscurridos + 1, totalCuotas);
-                if (pagosRealizados >= cuotasEsperadas) {
-                    estado = '✅ Al día';
-                    estadoClase = 'badge-success';
-                } else {
-                    estado = '⚠️ Atrasado';
-                    estadoClase = 'badge-danger';
+function actualizarResumenCliente() {
+    const panel = document.getElementById('panelResumen');
+    if (!clienteCargadoCI || historialCompleto.length === 0 || !datosClienteActual || !datosClienteActual.totalCuotas) {
+        panel.style.display = 'none';
+        return;
+    }
+    const totalCuotas = datosClienteActual.totalCuotas;
+    const pagosRealizados = historialCompleto.length;
+    const totalPagado = historialCompleto.reduce((sum, item) => sum + (parseFloat(item.cuota) || 0), 0);
+    const montoTotal = parseFloat(datosClienteActual.montoTotal) || 0;
+    const saldoPendiente = montoTotal - totalPagado;
+
+    const proximaCuotaTexto = obtenerProximaCuota(historialCompleto);
+
+    let estado = '', estadoClase = '';
+    if (pagosRealizados === 0) {
+        estado = '🔴 Sin pagos';
+        estadoClase = 'badge-danger';
+    } else if (pagosRealizados < totalCuotas) {
+        const hoy = new Date();
+        const fechaInicio = new Date(datosClienteActual.fechaInicio);
+        const mesesTranscurridos = (hoy.getFullYear() - fechaInicio.getFullYear()) * 12 + (hoy.getMonth() - fechaInicio.getMonth());
+        const cuotasEsperadas = Math.min(mesesTranscurridos + 1, totalCuotas);
+        if (pagosRealizados >= cuotasEsperadas) {
+            estado = '✅ Al día';
+            estadoClase = 'badge-success';
+        } else {
+            estado = '⚠️ Atrasado';
+            estadoClase = 'badge-danger';
+        }
+    } else {
+        estado = '✅ Pagado';
+        estadoClase = 'badge-success';
+    }
+
+    document.getElementById('resumen_cliente_nombre').textContent = `${datosClienteActual.cliente} - ${datosClienteActual.equipo}`;
+    document.getElementById('resumen_cuotas_pagadas').textContent = `${pagosRealizados}/${totalCuotas}`;
+    document.getElementById('resumen_total_pagado').textContent = `${totalPagado.toFixed(2)} Bs.`;
+    document.getElementById('resumen_saldo_pendiente').textContent = `${saldoPendiente.toFixed(2)} Bs.`;
+    document.getElementById('resumen_proxima_cuota').textContent = proximaCuotaTexto;
+    const estadoBadge = document.getElementById('resumen_estado');
+    estadoBadge.textContent = estado;
+    estadoBadge.className = `badge ${estadoClase}`;
+    const porcentaje = totalCuotas > 0 ? (pagosRealizados / totalCuotas) * 100 : 0;
+    document.getElementById('resumen_barra_progreso').style.width = `${Math.min(porcentaje, 100)}%`;
+    panel.style.display = 'block';
+}
+
+async function eliminarCliente() {
+    if (!productoSeleccionadoId) {
+        alert('Primero selecciona un producto para inactivar.');
+        return;
+    }
+    const nombre = document.getElementById('c_nombre').value;
+    const equipo = document.getElementById('c_equipo').value;
+    if (!confirm(`⚠️ ¿Estás seguro de INACTIVAR el producto "${equipo}" del cliente "${nombre}"?\n\nEl producto quedará como inactivo pero el historial se conservará.\n\n¡Esta acción se puede deshacer!`)) return;
+
+    try {
+        const res = await fetchWithAuth(`/eliminar-cliente/${productoSeleccionadoId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (res.ok) {
+            alert(`✅ Producto "${equipo}" marcado como inactivo.`);
+            document.getElementById('buscar_ci').value = clienteCargadoCI;
+            buscarCliente();
+        } else {
+            alert(data.error || 'Error al inactivar el producto.');
+        }
+    } catch (err) {
+        alert('Error al conectar con el servidor.');
+        console.error(err);
+    }
+}
+
+async function eliminarCobranza(id) {
+    if (!confirm('¿Estás seguro de eliminar este registro? Esta acción no se puede deshacer.')) return;
+    try {
+        const res = await fetchWithAuth(`/cobranza/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (res.ok) {
+            alert('Registro eliminado correctamente');
+            cargarHistorial(clienteCargadoCI);
+        } else {
+            alert(data.error || 'Error al eliminar');
+        }
+    } catch (err) {
+        alert('Error al conectar con el servidor');
+        console.error(err);
+    }
+}
+
+async function obtenerSiguienteRecibo() {
+    try {
+        const res = await fetchWithAuth('/siguiente-recibo');
+        const data = await res.json();
+        document.getElementById('recibo_num').value = data.siguiente || '000100';
+    } catch (e) {
+        console.error('Error al obtener recibo:', e);
+        document.getElementById('recibo_num').value = '000100';
+    }
+}
+
+async function guardarRecibo() {
+    const ci = clienteCargadoCI;
+    if (!ci) return alert('Primero busca un cliente.');
+    if (!document.getElementById('c_nombre').value) return alert('Busca un cliente primero.');
+    const numRecibo = document.getElementById('recibo_num').value;
+    if (!numRecibo || numRecibo === '000000') return alert('Espera a que se genere el número de recibo.');
+
+    if (!/^\d+$/.test(ci)) {
+        alert('El CI del cliente no es numérico. Por favor, busca el cliente nuevamente.');
+        return;
+    }
+
+    const payload = {
+        num_recibo: numRecibo,
+        cliente: document.getElementById('c_nombre').value,
+        ci: ci,
+        direccion: document.getElementById('c_direccion').value,
+        equipo: document.getElementById('c_equipo').value,
+        marcaModelo: document.getElementById('c_marca').value,
+        imei: document.getElementById('c_imei').value,
+        cuota: document.getElementById('c_cuota').value,
+        mes: document.getElementById('c_mes').value,
+        estadoCuota: document.getElementById('c_num_cuota').value,
+        montoLiteral: document.getElementById('c_literal').value,
+        observaciones: document.getElementById('c_obs').value
+    };
+
+    try {
+        const res = await fetchWithAuth('/guardar-recibo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert(data.mensaje || '✅ Pago registrado exitosamente.');
+            obtenerSiguienteRecibo();
+            cargarHistorial(ci);
+        } else {
+            alert(data.error || 'Error al guardar el pago.');
+        }
+    } catch (err) {
+        alert('Error al conectar con el servidor.');
+        console.error(err);
+    }
+}
+
+// ============================================================
+// EXTRACTO
+// ============================================================
+function abrirExtracto() {
+    if (historialCompleto.length === 0) return alert('Este cliente no tiene pagos registrados.');
+    const cliente = document.getElementById('c_nombre').value;
+    const ci = clienteCargadoCI;
+    const direccion = document.getElementById('c_direccion').value;
+    const equipo = document.getElementById('c_equipo').value;
+    const marca = document.getElementById('c_marca').value;
+
+    document.getElementById('ext_cliente').textContent = cliente;
+    document.getElementById('ext_ci').textContent = ci;
+    document.getElementById('ext_direccion').textContent = direccion || '-';
+    document.getElementById('ext_equipo').textContent = equipo || '-';
+    document.getElementById('ext_marca').textContent = marca || '-';
+
+    const tbody = document.getElementById('extractoTbody');
+    tbody.innerHTML = '';
+    let total = 0;
+    historialCompleto.forEach((item, index) => {
+        const f = new Date(item.fecha).toLocaleDateString('es-BO');
+        const monto = parseFloat(item.cuota) || 0;
+        total += monto;
+        tbody.innerHTML += `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${item.num_recibo || '000000'}</td>
+                <td>${f}</td>
+                <td>${item.mes || '-'}</td>
+                <td>${item.estadoCuota || '-'}</td>
+                <td style="text-align:right;">${monto.toFixed(2)}</td>
+            </tr>
+        `;
+    });
+    document.getElementById('ext_total').textContent = total.toFixed(2);
+    extractoDatos = { cliente, ci, direccion, equipo, marca, total: total.toFixed(2), pagos: historialCompleto };
+    document.getElementById('modalExtracto').style.display = 'flex';
+}
+
+function cerrarExtracto() {
+    document.getElementById('modalExtracto').style.display = 'none';
+}
+
+function enviarExtractoWhatsApp() {
+    const { cliente, ci, total, pagos } = extractoDatos;
+    let mensaje = `*INTEGRACIÓN TECNOLÓGICA - EXTRACTO DE PAGOS*%0A%0A*Cliente:* ${cliente}%0A*C.I.:* ${ci}%0A%0A*DETALLE DE PAGOS:*%0A`;
+    pagos.forEach((item, index) => {
+        const monto = parseFloat(item.cuota) || 0;
+        mensaje += `%0A${index + 1}. Recibo: ${item.num_recibo || '000000'} | Mes: ${item.mes || '-'} | Monto: ${monto.toFixed(2)} Bs.`;
+    });
+    mensaje += `%0A%0A*TOTAL PAGADO: ${total} Bs.*%0A%0A_¡Gracias por su confianza!_`;
+    window.open(`https://api.whatsapp.com/send?text=${mensaje}`, '_blank');
+}
+
+function descargarExtractoPDF() {
+    const { cliente, ci, direccion, equipo, marca, total, pagos } = extractoDatos;
+    document.getElementById('ext_pdf_cliente').textContent = cliente;
+    document.getElementById('ext_pdf_ci').textContent = ci;
+    document.getElementById('ext_pdf_direccion').textContent = direccion || '-';
+    document.getElementById('ext_pdf_equipo').textContent = equipo || '-';
+    document.getElementById('ext_pdf_marca').textContent = marca || '-';
+    document.getElementById('ext_pdf_total').textContent = total;
+    document.getElementById('ext_pdf_total_final').textContent = total;
+    document.getElementById('ext_fecha_emision').textContent = new Date().toLocaleString('es-BO');
+
+    const tbody = document.getElementById('extractoPdfTbody');
+    tbody.innerHTML = '';
+    pagos.forEach((item, index) => {
+        const f = new Date(item.fecha).toLocaleDateString('es-BO');
+        const monto = parseFloat(item.cuota) || 0;
+        tbody.innerHTML += `
+            <tr>
+                <td class="text-center">${index + 1}</td>
+                <td class="text-center">${item.num_recibo || '000000'}</td>
+                <td class="text-center">${f}</td>
+                <td class="text-center">${item.mes || '-'}</td>
+                <td class="text-center">${item.estadoCuota || '-'}</td>
+                <td class="text-right">${monto.toFixed(2)}</td>
+            </tr>
+        `;
+    });
+    document.getElementById('loadingOverlay').classList.add('show');
+    const elemento = document.getElementById('extractoPDF');
+    setTimeout(() => {
+        html2canvas(elemento, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', width: 750, height: elemento.scrollHeight, windowHeight: elemento.scrollHeight, logging: false })
+            .then(canvas => {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ unit: 'mm', format: 'letter', orientation: 'portrait' });
+                const imgWidth = 210, pageHeight = 297;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight, position = 0;
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                while (heightLeft > 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
                 }
-            } else {
-                estado = '✅ Pagado';
-                estadoClase = 'badge-success';
-            }
-
-            document.getElementById('resumen_cliente_nombre').textContent = `${datosClienteActual.cliente} - ${datosClienteActual.equipo}`;
-            document.getElementById('resumen_cuotas_pagadas').textContent = `${pagosRealizados}/${totalCuotas}`;
-            document.getElementById('resumen_total_pagado').textContent = `${totalPagado.toFixed(2)} Bs.`;
-            document.getElementById('resumen_saldo_pendiente').textContent = `${saldoPendiente.toFixed(2)} Bs.`;
-            document.getElementById('resumen_proxima_cuota').textContent = proximaCuotaTexto;
-            const estadoBadge = document.getElementById('resumen_estado');
-            estadoBadge.textContent = estado;
-            estadoBadge.className = `badge ${estadoClase}`;
-            const porcentaje = totalCuotas > 0 ? (pagosRealizados / totalCuotas) * 100 : 0;
-            document.getElementById('resumen_barra_progreso').style.width = `${Math.min(porcentaje, 100)}%`;
-            panel.style.display = 'block';
-        }
-
-        // ============================================================
-        // ELIMINAR PRODUCTO
-        // ============================================================
-        async function eliminarCliente() {
-            if (!productoSeleccionadoId) {
-                alert('Primero selecciona un producto para inactivar.');
-                return;
-            }
-            const nombre = document.getElementById('c_nombre').value;
-            const equipo = document.getElementById('c_equipo').value;
-            if (!confirm(`⚠️ ¿Estás seguro de INACTIVAR el producto "${equipo}" del cliente "${nombre}"?\n\nEl producto quedará como inactivo pero el historial se conservará.\n\n¡Esta acción se puede deshacer!`)) return;
-
-            try {
-                const res = await fetchWithAuth(`/eliminar-cliente/${productoSeleccionadoId}`, { method: 'DELETE' });
-                const data = await res.json();
-                if (res.ok) {
-                    alert(`✅ Producto "${equipo}" marcado como inactivo.`);
-                    document.getElementById('buscar_ci').value = clienteCargadoCI;
-                    buscarCliente();
-                } else {
-                    alert(data.error || 'Error al inactivar el producto.');
-                }
-            } catch (err) {
-                alert('Error al conectar con el servidor.');
-                console.error(err);
-            }
-        }
-
-        // ============================================================
-        // ELIMINAR COBRANZA (solo del día actual)
-        // ============================================================
-        async function eliminarCobranza(id) {
-            if (!confirm('¿Estás seguro de eliminar este registro? Esta acción no se puede deshacer.')) return;
-            try {
-                const res = await fetchWithAuth(`/cobranza/${id}`, { method: 'DELETE' });
-                const data = await res.json();
-                if (res.ok) {
-                    alert('Registro eliminado correctamente');
-                    cargarHistorial(clienteCargadoCI);
-                } else {
-                    alert(data.error || 'Error al eliminar');
-                }
-            } catch (err) {
-                alert('Error al conectar con el servidor');
-                console.error(err);
-            }
-        }
-
-        // ============================================================
-        // RECIBOS
-        // ============================================================
-        async function obtenerSiguienteRecibo() {
-            try {
-                const res = await fetchWithAuth('/siguiente-recibo');
-                const data = await res.json();
-                document.getElementById('recibo_num').value = data.siguiente || '000100';
-            } catch (e) {
-                console.error('Error al obtener recibo:', e);
-                document.getElementById('recibo_num').value = '000100';
-            }
-        }
-
-        async function guardarRecibo() {
-            const ci = clienteCargadoCI; // Usar el CI real del cliente cargado
-            if (!ci) return alert('Primero busca un cliente.');
-            if (!document.getElementById('c_nombre').value) return alert('Busca un cliente primero.');
-            const numRecibo = document.getElementById('recibo_num').value;
-            if (!numRecibo || numRecibo === '000000') return alert('Espera a que se genere el número de recibo.');
-
-            // Validar que CI sea numérico
-            if (!/^\d+$/.test(ci)) {
-                alert('El CI del cliente no es numérico. Por favor, busca el cliente nuevamente.');
-                return;
-            }
-
-            const payload = {
-                num_recibo: numRecibo,
-                cliente: document.getElementById('c_nombre').value,
-                ci: ci,
-                direccion: document.getElementById('c_direccion').value,
-                equipo: document.getElementById('c_equipo').value,
-                marcaModelo: document.getElementById('c_marca').value,
-                imei: document.getElementById('c_imei').value,
-                cuota: document.getElementById('c_cuota').value,
-                mes: document.getElementById('c_mes').value,
-                estadoCuota: document.getElementById('c_num_cuota').value,
-                montoLiteral: document.getElementById('c_literal').value,
-                observaciones: document.getElementById('c_obs').value
-            };
-
-            try {
-                const res = await fetchWithAuth('/guardar-recibo', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    alert(data.mensaje || '✅ Pago registrado exitosamente.');
-                    obtenerSiguienteRecibo();
-                    cargarHistorial(ci);
-                } else {
-                    alert(data.error || 'Error al guardar el pago.');
-                }
-            } catch (err) {
-                alert('Error al conectar con el servidor.');
-                console.error(err);
-            }
-        }
-
-        // ============================================================
-        // EXTRACTO
-        // ============================================================
-        function abrirExtracto() {
-            if (historialCompleto.length === 0) return alert('Este cliente no tiene pagos registrados.');
-            const cliente = document.getElementById('c_nombre').value;
-            const ci = clienteCargadoCI;
-            const direccion = document.getElementById('c_direccion').value;
-            const equipo = document.getElementById('c_equipo').value;
-            const marca = document.getElementById('c_marca').value;
-
-            document.getElementById('ext_cliente').textContent = cliente;
-            document.getElementById('ext_ci').textContent = ci;
-            document.getElementById('ext_direccion').textContent = direccion || '-';
-            document.getElementById('ext_equipo').textContent = equipo || '-';
-            document.getElementById('ext_marca').textContent = marca || '-';
-
-            const tbody = document.getElementById('extractoTbody');
-            tbody.innerHTML = '';
-            let total = 0;
-            historialCompleto.forEach((item, index) => {
-                const f = new Date(item.fecha).toLocaleDateString('es-BO');
-                const monto = parseFloat(item.cuota) || 0;
-                total += monto;
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${index + 1}</td>
-                        <td>${item.num_recibo || '000000'}</td>
-                        <td>${f}</td>
-                        <td>${item.mes || '-'}</td>
-                        <td>${item.estadoCuota || '-'}</td>
-                        <td style="text-align:right;">${monto.toFixed(2)}</td>
-                    </tr>
-                `;
-            });
-            document.getElementById('ext_total').textContent = total.toFixed(2);
-            extractoDatos = { cliente, ci, direccion, equipo, marca, total: total.toFixed(2), pagos: historialCompleto };
-            document.getElementById('modalExtracto').style.display = 'flex';
-        }
-
-        function cerrarExtracto() {
-            document.getElementById('modalExtracto').style.display = 'none';
-        }
-
-        function enviarExtractoWhatsApp() {
-            const { cliente, ci, total, pagos } = extractoDatos;
-            let mensaje = `*INTEGRACIÓN TECNOLÓGICA - EXTRACTO DE PAGOS*%0A%0A*Cliente:* ${cliente}%0A*C.I.:* ${ci}%0A%0A*DETALLE DE PAGOS:*%0A`;
-            pagos.forEach((item, index) => {
-                const monto = parseFloat(item.cuota) || 0;
-                mensaje += `%0A${index + 1}. Recibo: ${item.num_recibo || '000000'} | Mes: ${item.mes || '-'} | Monto: ${monto.toFixed(2)} Bs.`;
-            });
-            mensaje += `%0A%0A*TOTAL PAGADO: ${total} Bs.*%0A%0A_¡Gracias por su confianza!_`;
-            window.open(`https://api.whatsapp.com/send?text=${mensaje}`, '_blank');
-        }
-
-        function descargarExtractoPDF() {
-            const { cliente, ci, direccion, equipo, marca, total, pagos } = extractoDatos;
-            document.getElementById('ext_pdf_cliente').textContent = cliente;
-            document.getElementById('ext_pdf_ci').textContent = ci;
-            document.getElementById('ext_pdf_direccion').textContent = direccion || '-';
-            document.getElementById('ext_pdf_equipo').textContent = equipo || '-';
-            document.getElementById('ext_pdf_marca').textContent = marca || '-';
-            document.getElementById('ext_pdf_total').textContent = total;
-            document.getElementById('ext_pdf_total_final').textContent = total;
-            document.getElementById('ext_fecha_emision').textContent = new Date().toLocaleString('es-BO');
-
-            const tbody = document.getElementById('extractoPdfTbody');
-            tbody.innerHTML = '';
-            pagos.forEach((item, index) => {
-                const f = new Date(item.fecha).toLocaleDateString('es-BO');
-                const monto = parseFloat(item.cuota) || 0;
-                tbody.innerHTML += `
-                    <tr>
-                        <td class="text-center">${index + 1}</td>
-                        <td class="text-center">${item.num_recibo || '000000'}</td>
-                        <td class="text-center">${f}</td>
-                        <td class="text-center">${item.mes || '-'}</td>
-                        <td class="text-center">${item.estadoCuota || '-'}</td>
-                        <td class="text-right">${monto.toFixed(2)}</td>
-                    </tr>
-                `;
-            });
-            document.getElementById('loadingOverlay').classList.add('show');
-            const elemento = document.getElementById('extractoPDF');
-            setTimeout(() => {
-                html2canvas(elemento, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', width: 750, height: elemento.scrollHeight, windowHeight: elemento.scrollHeight, logging: false })
-                    .then(canvas => {
-                        const { jsPDF } = window.jspdf;
-                        const pdf = new jsPDF({ unit: 'mm', format: 'letter', orientation: 'portrait' });
-                        const imgWidth = 210, pageHeight = 297;
-                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                        let heightLeft = imgHeight, position = 0;
-                        const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                        heightLeft -= pageHeight;
-                        while (heightLeft > 0) {
-                            position = heightLeft - imgHeight;
-                            pdf.addPage();
-                            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                            heightLeft -= pageHeight;
-                        }
-                        pdf.save(`Extracto_${cliente.replace(/\s+/g, '_')}.pdf`);
-                        document.getElementById('loadingOverlay').classList.remove('show');
-                    })
-                    .catch(error => {
-                        console.error('Error en html2canvas:', error);
-                        alert('Error al generar el PDF.');
-                        document.getElementById('loadingOverlay').classList.remove('show');
-                    });
-            }, 500);
-        }
-
-        // ============================================================
-        // REPORTE GENERAL
-        // ============================================================
-        async function abrirReporteGeneral() {
-            document.getElementById('loadingOverlay').classList.add('show');
-            try {
-                const res = await fetchWithAuth('/todas-cobranzas');
-                reporteDatos = await res.json();
-                if (!reporteDatos || reporteDatos.length === 0) {
-                    alert('No hay registros de cobranzas para mostrar.');
-                    document.getElementById('loadingOverlay').classList.remove('show');
-                    return;
-                }
-                reporteDatos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-                filtrarReporte();
-                document.getElementById('modalReporte').style.display = 'flex';
-            } catch (error) {
-                console.error('Error al cargar reporte:', error);
-                alert('Error al cargar los datos del reporte.');
-            }
-            document.getElementById('loadingOverlay').classList.remove('show');
-        }
-
-        function cerrarReporte() {
-            document.getElementById('modalReporte').style.display = 'none';
-        }
-
-        function filtrarReporte() {
-            const desde = document.getElementById('reporte_fecha_desde').value;
-            const hasta = document.getElementById('reporte_fecha_hasta').value;
-            reporteFiltrados = reporteDatos.filter(item => {
-                if (!item.fecha) return true;
-                const fechaStr = new Date(item.fecha).toISOString().split('T')[0];
-                if (desde && fechaStr < desde) return false;
-                if (hasta && fechaStr > hasta) return false;
-                return true;
-            });
-            mostrarReporte();
-        }
-
-        function limpiarFiltrosReporte() {
-            const hoy = new Date();
-            const hace30 = new Date();
-            hace30.setDate(hoy.getDate() - 30);
-            document.getElementById('reporte_fecha_desde').value = hace30.toISOString().split('T')[0];
-            document.getElementById('reporte_fecha_hasta').value = hoy.toISOString().split('T')[0];
-            filtrarReporte();
-        }
-
-        function mostrarReporte() {
-            const tbody = document.getElementById('reporteTbody');
-            tbody.innerHTML = '';
-            let totalMonto = 0;
-            const clientesSet = new Set();
-            if (reporteFiltrados.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#888; padding: 30px;">No hay registros en el periodo seleccionado.</td></tr>';
-            } else {
-                reporteFiltrados.forEach((item, index) => {
-                    const f = new Date(item.fecha).toLocaleDateString('es-BO');
-                    const monto = parseFloat(item.cuota) || 0;
-                    totalMonto += monto;
-                    if (item.ci) clientesSet.add(item.ci);
-                    tbody.innerHTML += `
-                        <tr>
-                            <td>${index + 1}</td>
-                            <td>${item.num_recibo || '000000'}</td>
-                            <td>${item.cliente || '-'}</td>
-                            <td>${item.ci || '-'}</td>
-                            <td>${f}</td>
-                            <td>${item.mes || '-'}</td>
-                            <td>${item.estadoCuota || '-'}</td>
-                            <td style="text-align:right;">${monto.toFixed(2)}</td>
-                        </tr>
-                    `;
-                });
-            }
-            document.getElementById('rep_total_pagos').textContent = reporteFiltrados.length;
-            document.getElementById('rep_total_monto').textContent = totalMonto.toFixed(2);
-            document.getElementById('rep_clientes').textContent = clientesSet.size;
-            document.getElementById('rep_total_general').textContent = totalMonto.toFixed(2);
-        }
-
-        function enviarReporteWhatsApp() {
-            if (reporteFiltrados.length === 0) return alert('No hay datos para enviar.');
-            let totalMonto = 0;
-            let mensaje = `*INTEGRACIÓN TECNOLÓGICA - REPORTE DE COBRANZAS*%0A%0A*Fecha:* ${new Date().toLocaleDateString('es-BO')}%0A*Total Pagos:* ${reporteFiltrados.length}`;
-            reporteFiltrados.forEach(item => { totalMonto += parseFloat(item.cuota) || 0; });
-            mensaje += `%0A*Monto Total:* ${totalMonto.toFixed(2)} Bs.%0A%0A*RESUMEN DE PAGOS:*%0A`;
-            reporteFiltrados.forEach((item, index) => {
-                const monto = parseFloat(item.cuota) || 0;
-                mensaje += `%0A${index + 1}. ${item.num_recibo || '000000'} | ${item.cliente || '-'} | ${item.mes || '-'} | ${monto.toFixed(2)} Bs.`;
-            });
-            mensaje += `%0A%0A*TOTAL: ${totalMonto.toFixed(2)} Bs.*`;
-            window.open(`https://api.whatsapp.com/send?text=${mensaje}`, '_blank');
-        }
-
-        function descargarReportePDF() {
-            if (reporteFiltrados.length === 0) return alert('No hay datos para generar el PDF.');
-            let totalMonto = 0;
-            const clientesSet = new Set();
-            document.getElementById('rep_fecha_emision').textContent = new Date().toLocaleString('es-BO');
-            const desde = document.getElementById('reporte_fecha_desde').value;
-            const hasta = document.getElementById('reporte_fecha_hasta').value;
-            document.getElementById('rep_periodo').textContent = `${desde || 'Inicio'} - ${hasta || 'Actualidad'}`;
-
-            const tbody = document.getElementById('reportePdfTbody');
-            tbody.innerHTML = '';
-            reporteFiltrados.forEach((item, index) => {
-                const f = new Date(item.fecha).toLocaleDateString('es-BO');
-                const monto = parseFloat(item.cuota) || 0;
-                totalMonto += monto;
-                if (item.ci) clientesSet.add(item.ci);
-                tbody.innerHTML += `
-                    <tr>
-                        <td class="text-center">${index + 1}</td>
-                        <td class="text-center">${item.num_recibo || '000000'}</td>
-                        <td>${item.cliente || '-'}</td>
-                        <td class="text-center">${item.ci || '-'}</td>
-                        <td class="text-center">${f}</td>
-                        <td class="text-center">${item.mes || '-'}</td>
-                        <td class="text-center">${item.estadoCuota || '-'}</td>
-                        <td class="text-right">${monto.toFixed(2)}</td>
-                    </tr>
-                `;
-            });
-            document.getElementById('rep_pdf_total_pagos').textContent = reporteFiltrados.length;
-            document.getElementById('rep_pdf_total_monto').textContent = totalMonto.toFixed(2);
-            document.getElementById('rep_pdf_clientes').textContent = clientesSet.size;
-            document.getElementById('rep_pdf_total_final').textContent = totalMonto.toFixed(2);
-
-            document.getElementById('loadingOverlay').classList.add('show');
-            const elemento = document.getElementById('reportePDF');
-            setTimeout(() => {
-                html2canvas(elemento, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', width: 750, height: elemento.scrollHeight, windowHeight: elemento.scrollHeight, logging: false })
-                    .then(canvas => {
-                        const { jsPDF } = window.jspdf;
-                        const pdf = new jsPDF({ unit: 'mm', format: 'letter', orientation: 'portrait' });
-                        const imgWidth = 210, pageHeight = 297;
-                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                        let heightLeft = imgHeight, position = 0;
-                        const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                        heightLeft -= pageHeight;
-                        while (heightLeft > 0) {
-                            position = heightLeft - imgHeight;
-                            pdf.addPage();
-                            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                            heightLeft -= pageHeight;
-                        }
-                        pdf.save(`Reporte_Cobranzas_${new Date().toISOString().split('T')[0]}.pdf`);
-                        document.getElementById('loadingOverlay').classList.remove('show');
-                    })
-                    .catch(error => {
-                        console.error('Error en html2canvas:', error);
-                        alert('Error al generar el PDF.');
-                        document.getElementById('loadingOverlay').classList.remove('show');
-                    });
-            }, 500);
-        }
-
-        // ============================================================
-        // DEUDORES DEL MES
-        // ============================================================
-        function abrirDeudores() {
-            document.getElementById('modalDeudores').style.display = 'flex';
-            consultarDeudores();
-        }
-
-        function cerrarDeudores() {
-            document.getElementById('modalDeudores').style.display = 'none';
-        }
-
-        async function consultarDeudores() {
-            const mes = document.getElementById('deudores_mes').value;
-            const anio = document.getElementById('deudores_anio').value;
-            if (!mes || !anio) {
-                alert('Selecciona un mes y año válidos.');
-                return;
-            }
-            document.getElementById('loadingOverlay').classList.add('show');
-            try {
-                const res = await fetchWithAuth(`/deudores?mes=${mes}&anio=${anio}`);
-                if (!res.ok) {
-                    const error = await res.json();
-                    alert(error.error || 'Error al obtener deudores');
-                    document.getElementById('loadingOverlay').classList.remove('show');
-                    return;
-                }
-                const deudores = await res.json();
-                mostrarDeudores(deudores);
-            } catch (err) {
-                alert('Error al conectar con el servidor');
-                console.error(err);
-            }
-            document.getElementById('loadingOverlay').classList.remove('show');
-        }
-
-        function mostrarDeudores(deudores) {
-            const tbody = document.getElementById('deudoresTbody');
-            tbody.innerHTML = '';
-            if (deudores.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#888; padding: 30px;">No hay clientes deudores en este mes.</td></tr>';
-                document.getElementById('deudoresResumen').style.display = 'none';
-                return;
-            }
-            let totalMonto = 0;
-            deudores.forEach((p, index) => {
-                const monto = parseFloat(p.cuotaMonto) || 0;
-                totalMonto += monto;
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${index + 1}</td>
-                        <td>${p.cliente}</td>
-                        <td>${p.ci}</td>
-                        <td>${p.equipo}</td>
-                        <td>${p.marcaModelo}</td>
-                        <td><span class="badge badge-danger">Deudor</span></td>
-                    </tr>
-                `;
-            });
-            document.getElementById('deu_total').textContent = deudores.length;
-            document.getElementById('deu_monto_total').textContent = totalMonto.toFixed(2);
-            document.getElementById('deudoresResumen').style.display = 'grid';
-        }
-
-        // ============================================================
-        // PDF DE RECIBO INDIVIDUAL
-        // ============================================================
-        function generarPDF(itemStr) {
-            try {
-                const item = JSON.parse(itemStr);
-                document.getElementById('loadingOverlay').classList.add('show');
-                document.getElementById('p_recibo').innerText = item.num_recibo || '000000';
-                document.getElementById('p_cliente').innerText = item.cliente || '';
-                document.getElementById('p_ci').innerText = item.ci || '';
-                document.getElementById('p_direccion').innerText = item.direccion || '-';
-                document.getElementById('p_equipo').innerText = item.equipo || '-';
-                document.getElementById('p_marca').innerText = item.marcaModelo || '-';
-                document.getElementById('p_imei').innerText = item.imei || '-';
-                document.getElementById('p_mes').innerText = item.mes || '-';
-                document.getElementById('p_estado').innerText = item.estadoCuota || '-';
-                document.getElementById('p_monto').innerText = item.cuota || '0';
-                document.getElementById('p_literal').innerText = item.montoLiteral || '-';
-                document.getElementById('p_obs').innerText = item.observaciones || '-';
-                const fecha = new Date(item.fecha);
-                const dia = fecha.getDate(), mes = fecha.getMonth()+1, anio = fecha.getFullYear();
-                let horas = fecha.getHours();
-                const minutos = String(fecha.getMinutes()).padStart(2,'0');
-                const segundos = String(fecha.getSeconds()).padStart(2,'0');
-                const ampm = horas >= 12 ? 'p. m.' : 'a. m.';
-                horas = horas % 12 || 12;
-                document.getElementById('p_fecha').innerText = `${dia}/${mes}/${anio}, ${horas}:${minutos}:${segundos} ${ampm}`;
-
-                const elemento = document.getElementById('reciboCartaPDF');
-                setTimeout(() => {
-                    html2canvas(elemento, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', width: 750, height: elemento.scrollHeight, windowHeight: elemento.scrollHeight, logging: false })
-                        .then(canvas => {
-                            const { jsPDF } = window.jspdf;
-                            const pdf = new jsPDF({ unit: 'mm', format: 'letter', orientation: 'portrait' });
-                            const imgWidth = 210, pageHeight = 297;
-                            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                            let heightLeft = imgHeight, position = 0;
-                            const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                            heightLeft -= pageHeight;
-                            while (heightLeft > 0) {
-                                position = heightLeft - imgHeight;
-                                pdf.addPage();
-                                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                                heightLeft -= pageHeight;
-                            }
-                            pdf.save(`Recibo_${item.num_recibo || '000000'}_${(item.cliente || '').replace(/\s+/g, '_')}.pdf`);
-                            document.getElementById('loadingOverlay').classList.remove('show');
-                        })
-                        .catch(error => {
-                            console.error('Error en html2canvas:', error);
-                            alert('Error al generar el PDF.');
-                            document.getElementById('loadingOverlay').classList.remove('show');
-                        });
-                }, 500);
-            } catch (e) {
-                console.error('Error:', e);
-                alert('Error al procesar los datos del recibo.');
+                pdf.save(`Extracto_${cliente.replace(/\s+/g, '_')}.pdf`);
                 document.getElementById('loadingOverlay').classList.remove('show');
-            }
-        }
-
-        function enviarWhatsApp(itemStr) {
-            try {
-                const item = JSON.parse(itemStr);
-                const texto = `*INTEGRACIÓN TECNOLÓGICA - COMPROBANTE DE PAGO*%0A` +
-                    `*Recibo N°:* ${item.num_recibo || '000000'}%0A` +
-                    `*Cliente:* ${item.cliente || ''}%0A` +
-                    `*C.I.:* ${item.ci || ''}%0A` +
-                    `*Monto Pagado:* ${item.cuota || 0} Bs.%0A` +
-                    `*Mes:* ${item.mes || '-'}%0A` +
-                    `*Estado:* ${item.estadoCuota || '-'}%0A` +
-                    `*Fecha:* ${new Date(item.fecha).toLocaleDateString()}%0A%0A` +
-                    `_¡Muchas gracias por su pago!_`;
-                window.open(`https://api.whatsapp.com/send?text=${texto}`, '_blank');
-            } catch (e) {
-                console.error('Error:', e);
-                alert('Error al enviar mensaje de WhatsApp.');
-            }
-        }
-
-        // Cerrar modales al hacer clic fuera
-        document.querySelectorAll('.modal').forEach(modal => {
-            modal.addEventListener('click', function(e) {
-                if (e.target === this) this.style.display = 'none';
+            })
+            .catch(error => {
+                console.error('Error en html2canvas:', error);
+                alert('Error al generar el PDF.');
+                document.getElementById('loadingOverlay').classList.remove('show');
             });
+    }, 500);
+}
+
+// ============================================================
+// REPORTE GENERAL (con resumen financiero y retiro)
+// ============================================================
+async function abrirReporteGeneral() {
+    document.getElementById('loadingOverlay').classList.add('show');
+    try {
+        await cargarResumenFinanciero();
+        const res = await fetchWithAuth('/todas-cobranzas');
+        reporteDatos = await res.json();
+        if (!reporteDatos || reporteDatos.length === 0) {
+            alert('No hay registros de cobranzas para mostrar.');
+            document.getElementById('loadingOverlay').classList.remove('show');
+            return;
+        }
+        reporteDatos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+        filtrarReporte();
+        document.getElementById('modalReporte').style.display = 'flex';
+    } catch (error) {
+        console.error('Error al cargar reporte:', error);
+        alert('Error al cargar los datos del reporte.');
+    }
+    document.getElementById('loadingOverlay').classList.remove('show');
+}
+
+async function cargarResumenFinanciero() {
+    try {
+        const res = await fetchWithAuth('/resumen-financiero');
+        const data = await res.json();
+        document.getElementById('rf_capital_total').textContent = data.capitalTotal.toFixed(2);
+        document.getElementById('rf_capital_disponible').textContent = data.capitalDisponible.toFixed(2);
+        document.getElementById('rf_ganancia_total').textContent = data.gananciaTotal.toFixed(2);
+        document.getElementById('rf_total_reinvertido').textContent = data.totalReinvertido.toFixed(2);
+        document.getElementById('rf_ganancia_disponible').textContent = data.gananciaDisponible.toFixed(2);
+        document.getElementById('rf_total_retirado').textContent = data.totalRetirado.toFixed(2);
+    } catch (error) {
+        console.error('Error cargando resumen financiero:', error);
+    }
+}
+
+function cerrarReporte() {
+    document.getElementById('modalReporte').style.display = 'none';
+}
+
+function filtrarReporte() {
+    const desde = document.getElementById('reporte_fecha_desde').value;
+    const hasta = document.getElementById('reporte_fecha_hasta').value;
+    reporteFiltrados = reporteDatos.filter(item => {
+        if (!item.fecha) return true;
+        const fechaStr = new Date(item.fecha).toISOString().split('T')[0];
+        if (desde && fechaStr < desde) return false;
+        if (hasta && fechaStr > hasta) return false;
+        return true;
+    });
+    mostrarReporte();
+}
+
+function limpiarFiltrosReporte() {
+    const hoy = new Date();
+    const hace30 = new Date();
+    hace30.setDate(hoy.getDate() - 30);
+    document.getElementById('reporte_fecha_desde').value = hace30.toISOString().split('T')[0];
+    document.getElementById('reporte_fecha_hasta').value = hoy.toISOString().split('T')[0];
+    filtrarReporte();
+}
+
+function mostrarReporte() {
+    const tbody = document.getElementById('reporteTbody');
+    tbody.innerHTML = '';
+    let totalMonto = 0;
+    const clientesSet = new Set();
+    if (reporteFiltrados.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#888; padding: 30px;">No hay registros en el periodo seleccionado.</td></tr>';
+    } else {
+        reporteFiltrados.forEach((item, index) => {
+            const f = new Date(item.fecha).toLocaleDateString('es-BO');
+            const monto = parseFloat(item.cuota) || 0;
+            totalMonto += monto;
+            if (item.ci) clientesSet.add(item.ci);
+            tbody.innerHTML += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${item.num_recibo || '000000'}</td>
+                    <td>${item.cliente || '-'}</td>
+                    <td>${item.ci || '-'}</td>
+                    <td>${f}</td>
+                    <td>${item.mes || '-'}</td>
+                    <td>${item.estadoCuota || '-'}</td>
+                    <td style="text-align:right;">${monto.toFixed(2)}</td>
+                </tr>
+            `;
         });
+    }
+    document.getElementById('rep_total_pagos').textContent = reporteFiltrados.length;
+    document.getElementById('rep_total_monto').textContent = totalMonto.toFixed(2);
+    document.getElementById('rep_clientes').textContent = clientesSet.size;
+    document.getElementById('rep_total_general').textContent = totalMonto.toFixed(2);
+}
+
+function enviarReporteWhatsApp() {
+    if (reporteFiltrados.length === 0) return alert('No hay datos para enviar.');
+    let totalMonto = 0;
+    let mensaje = `*INTEGRACIÓN TECNOLÓGICA - REPORTE DE COBRANZAS*%0A%0A*Fecha:* ${new Date().toLocaleDateString('es-BO')}%0A*Total Pagos:* ${reporteFiltrados.length}`;
+    reporteFiltrados.forEach(item => { totalMonto += parseFloat(item.cuota) || 0; });
+    mensaje += `%0A*Monto Total:* ${totalMonto.toFixed(2)} Bs.%0A%0A*RESUMEN DE PAGOS:*%0A`;
+    reporteFiltrados.forEach((item, index) => {
+        const monto = parseFloat(item.cuota) || 0;
+        mensaje += `%0A${index + 1}. ${item.num_recibo || '000000'} | ${item.cliente || '-'} | ${item.mes || '-'} | ${monto.toFixed(2)} Bs.`;
+    });
+    mensaje += `%0A%0A*TOTAL: ${totalMonto.toFixed(2)} Bs.*`;
+    window.open(`https://api.whatsapp.com/send?text=${mensaje}`, '_blank');
+}
+
+function descargarReportePDF() {
+    if (reporteFiltrados.length === 0) return alert('No hay datos para generar el PDF.');
+
+    // ============================================================
+    // ACTUALIZAR LOS SPANS DE PERIODO Y EMISIÓN (por si faltan)
+    // ============================================================
+    const desde = document.getElementById('reporte_fecha_desde').value;
+    const hasta = document.getElementById('reporte_fecha_hasta').value;
+    document.getElementById('rep_periodo').textContent = `${desde || 'Inicio'} - ${hasta || 'Actualidad'}`;
+    document.getElementById('rep_fecha_emision').textContent = new Date().toLocaleString('es-BO');
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'letter', orientation: 'portrait' });
+
+    const margenX = 15;
+    const margenYSuperior = 35; // Espacio para la cabecera (logo + título)
+    const pageWidth = 210; // mm
+
+    // ============================================================
+    // CARGAR EL LOGO (se hace una sola vez)
+    // ============================================================
+    const logoImg = new Image();
+    logoImg.src = '/logoidn.png';
+
+    const loadLogo = new Promise((resolve) => {
+        logoImg.onload = function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = logoImg.width;
+            canvas.height = logoImg.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(logoImg, 0, 0);
+            resolve(canvas.toDataURL('image/png'));
+        };
+        logoImg.onerror = function() {
+            console.warn('No se pudo cargar el logo, se continuará sin él.');
+            resolve(null);
+        };
+    });
+
+    // ============================================================
+    // GENERAR PDF DESPUÉS DE CARGAR EL LOGO
+    // ============================================================
+    loadLogo.then((logoDataUrl) => {
+
+        // ---- CABECERA (se repite en cada página) ----
+        const header = function(data) {
+            // Dibujar logo (izquierda)
+            if (logoDataUrl) {
+                doc.addImage(logoDataUrl, 'PNG', margenX, 8, 35, 18); // Posición fija (no depende del margen)
+            }
+
+            // Título y datos (derecha)
+            doc.setFontSize(14);
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'bold');
+            doc.text('INTEGRACIÓN TECNOLÓGICA', pageWidth - margenX - 5, 15, { align: 'right' });
+
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'normal');
+            doc.text('REPORTE GENERAL DE COBRANZAS', pageWidth - margenX - 5, 22, { align: 'right' });
+
+            doc.setFontSize(9);
+            doc.setTextColor(80);
+            doc.text(`Periodo: ${document.getElementById('rep_periodo').textContent}`, pageWidth - margenX - 5, 29, { align: 'right' });
+            doc.text(`Emisión: ${document.getElementById('rep_fecha_emision').textContent}`, pageWidth - margenX - 5, 34, { align: 'right' });
+
+            // Línea separadora (debajo de la cabecera)
+            doc.setDrawColor(0);
+            doc.line(margenX, 37, pageWidth - margenX, 37);
+        };
+
+        // ---- PIE DE PÁGINA ----
+        const footer = function(data) {
+            const totalPages = data.totalPages;
+            const currentPage = data.pageNumber;
+            doc.setFontSize(8);
+            doc.setTextColor(100);
+            doc.text(`Página ${currentPage} de ${totalPages}`, pageWidth - margenX - 20, doc.internal.pageSize.height - 10);
+            doc.text('INTEGRACIÓN TECNOLÓGICA - Teléfono: +591 71414917 - 70868212', margenX, doc.internal.pageSize.height - 10);
+        };
+
+        // ---- DATOS DE LA TABLA ----
+        const tableRows = reporteFiltrados.map((item, index) => {
+            const f = new Date(item.fecha).toLocaleDateString('es-BO');
+            const monto = parseFloat(item.cuota) || 0;
+            return [
+                (index + 1).toString(),
+                item.num_recibo || '000000',
+                item.cliente || '-',
+                item.ci || '-',
+                f,
+                item.mes || '-',
+                item.estadoCuota || '-',
+                monto.toFixed(2)
+            ];
+        });
+
+        const totalMonto = reporteFiltrados.reduce((sum, item) => sum + (parseFloat(item.cuota) || 0), 0);
+        const clientesSet = new Set(reporteFiltrados.map(item => item.ci).filter(c => c));
+        const totalClientes = clientesSet.size;
+
+        // ---- CONFIGURACIÓN DE AUTOTABLE ----
+        doc.autoTable({
+            head: [['#', 'Recibo', 'Cliente', 'CI', 'Fecha', 'Mes', 'Estado', 'Monto (Bs.)']],
+            body: tableRows,
+            startY: margenYSuperior + 5, // Comienza después de la cabecera
+            margin: { top: margenYSuperior, bottom: 15, left: margenX, right: margenX },
+            tableWidth: 'auto',
+            styles: { fontSize: 8, cellPadding: 1.5, lineColor: [0, 0, 0], lineWidth: 0.1 },
+            headStyles: { fillColor: [15, 76, 92], textColor: [255, 255, 255], fontSize: 8, fontStyle: 'bold' },
+            columnStyles: {
+                0: { cellWidth: 10, halign: 'center' },
+                1: { cellWidth: 20, halign: 'center' },
+                2: { cellWidth: 40 },
+                3: { cellWidth: 20, halign: 'center' },
+                4: { cellWidth: 25, halign: 'center' },
+                5: { cellWidth: 20, halign: 'center' },
+                6: { cellWidth: 25 },
+                7: { cellWidth: 25, halign: 'right' }
+            },
+            // Dibujar cabecera y pie en cada página
+            didDrawPage: function(data) {
+                header(data);
+                footer(data);
+            },
+            // Fila de total
+            foot: [[
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                { content: 'TOTAL GENERAL:', colSpan: 1, styles: { fontStyle: 'bold', halign: 'right' } },
+                { content: totalMonto.toFixed(2), styles: { fontStyle: 'bold', halign: 'right' } }
+            ]],
+            footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
+        });
+
+        // ---- RESUMEN ADICIONAL (debajo de la tabla) ----
+        const finalY = doc.lastAutoTable.finalY + 8;
+        doc.setFontSize(9);
+        doc.setTextColor(50);
+        doc.text(`Total Pagos: ${reporteFiltrados.length}`, margenX, finalY);
+        doc.text(`Monto Total: ${totalMonto.toFixed(2)} Bs.`, margenX + 50, finalY);
+        doc.text(`Clientes con Pagos: ${totalClientes}`, margenX + 100, finalY);
+
+        // ---- GUARDAR PDF ----
+        doc.save(`Reporte_Cobranzas_${new Date().toISOString().split('T')[0]}.pdf`);
+    });
+}
+
+// ============================================================
+// DEUDORES
+// ============================================================
+function abrirDeudores() {
+    document.getElementById('modalDeudores').style.display = 'flex';
+    consultarDeudores();
+}
+
+function cerrarDeudores() {
+    document.getElementById('modalDeudores').style.display = 'none';
+}
+
+async function consultarDeudores() {
+    const mes = document.getElementById('deudores_mes').value;
+    const anio = document.getElementById('deudores_anio').value;
+    if (!mes || !anio) {
+        alert('Selecciona un mes y año válidos.');
+        return;
+    }
+    document.getElementById('loadingOverlay').classList.add('show');
+    try {
+        const res = await fetchWithAuth(`/deudores?mes=${mes}&anio=${anio}`);
+        if (!res.ok) {
+            const error = await res.json();
+            alert(error.error || 'Error al obtener deudores');
+            document.getElementById('loadingOverlay').classList.remove('show');
+            return;
+        }
+        const deudores = await res.json();
+        mostrarDeudores(deudores);
+    } catch (err) {
+        alert('Error al conectar con el servidor');
+        console.error(err);
+    }
+    document.getElementById('loadingOverlay').classList.remove('show');
+}
+
+function mostrarDeudores(deudores) {
+    const tbody = document.getElementById('deudoresTbody');
+    tbody.innerHTML = '';
+    if (deudores.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#888; padding: 30px;">No hay clientes deudores en este mes.</td></tr>';
+        document.getElementById('deudoresResumen').style.display = 'none';
+        return;
+    }
+    let totalMonto = 0;
+    deudores.forEach((p, index) => {
+        const monto = parseFloat(p.cuotaMonto) || 0;
+        totalMonto += monto;
+        tbody.innerHTML += `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${p.cliente}</td>
+                <td>${p.ci}</td>
+                <td>${p.equipo}</td>
+                <td>${p.marcaModelo}</td>
+                <td><span class="badge badge-danger">Deudor</span></td>
+            </tr>
+        `;
+    });
+    document.getElementById('deu_total').textContent = deudores.length;
+    document.getElementById('deu_monto_total').textContent = totalMonto.toFixed(2);
+    document.getElementById('deudoresResumen').style.display = 'grid';
+}
+
+// ============================================================
+// RETIRO DE GANANCIAS
+// ============================================================
+function abrirModalRetiro() {
+    if (getUserRole() !== 'SUPER_USUARIO') {
+        alert('No tienes permisos para realizar retiros.');
+        return;
+    }
+    document.getElementById('modalRetiro').style.display = 'flex';
+    const hoy = new Date();
+    document.getElementById('ret_fecha').value = hoy.toISOString().split('T')[0];
+    document.getElementById('ret_hora').value = hoy.toTimeString().slice(0,5);
+    document.getElementById('ret_persona').value = '';
+    document.getElementById('ret_monto').value = '';
+    document.getElementById('ret_obs').value = '';
+}
+
+function cerrarModalRetiro() {
+    document.getElementById('modalRetiro').style.display = 'none';
+}
+
+document.getElementById('formRetiro').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const persona_recibe = document.getElementById('ret_persona').value.trim();
+    const monto = document.getElementById('ret_monto').value;
+    const fecha = document.getElementById('ret_fecha').value;
+    const hora = document.getElementById('ret_hora').value;
+    const observacion = document.getElementById('ret_obs').value.trim();
+
+    if (!persona_recibe || !monto || isNaN(monto) || parseFloat(monto) <= 0 || !fecha || !hora) {
+        alert('Completa todos los campos obligatorios.');
+        return;
+    }
+
+    try {
+        const res = await fetchWithAuth('/retirar-ganancia', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ persona_recibe, monto, fecha, hora, observacion })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert('✅ Retiro registrado exitosamente.');
+            cerrarModalRetiro();
+            generarPDFRetiro(data.retiro, data.saldoAntes, data.saldoDespues);
+            if (document.getElementById('modalReporte').style.display === 'flex') {
+                cargarResumenFinanciero();
+            }
+        } else {
+            alert(data.error || 'Error al registrar el retiro.');
+        }
+    } catch (error) {
+        alert('Error de conexión.');
+        console.error(error);
+    }
+});
+
+function generarPDFRetiro(retiro, saldoAntes, saldoDespues) {
+    document.getElementById('loadingOverlay').classList.add('show');
+    document.getElementById('rt_codigo').textContent = retiro.codigo_unico;
+    document.getElementById('rt_persona').textContent = retiro.persona_recibe;
+    const monto = parseFloat(retiro.monto);
+    document.getElementById('rt_monto').textContent = monto.toFixed(2);
+    document.getElementById('rt_fecha').textContent = retiro.fecha;
+    document.getElementById('rt_hora').textContent = retiro.hora;
+    document.getElementById('rt_literal').textContent = numeroALiteral(monto);
+    document.getElementById('rt_saldo_antes').textContent = saldoAntes.toFixed(2);
+    document.getElementById('rt_monto_retirado').textContent = monto.toFixed(2);
+    document.getElementById('rt_saldo_despues').textContent = saldoDespues.toFixed(2);
+    document.getElementById('rt_obs').textContent = retiro.observacion || '-';
+
+    const elemento = document.getElementById('retiroPDF');
+    setTimeout(() => {
+        html2canvas(elemento, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', width: 750, height: elemento.scrollHeight, windowHeight: elemento.scrollHeight, logging: false })
+            .then(canvas => {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ unit: 'mm', format: 'letter', orientation: 'portrait' });
+                const imgWidth = 210, pageHeight = 297;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight, position = 0;
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                while (heightLeft > 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                pdf.save(`Retiro_${retiro.codigo_unico}.pdf`);
+                document.getElementById('loadingOverlay').classList.remove('show');
+            })
+            .catch(error => {
+                console.error('Error en html2canvas:', error);
+                alert('Error al generar el PDF de retiro.');
+                document.getElementById('loadingOverlay').classList.remove('show');
+            });
+    }, 500);
+}
+
+// ============================================================
+// PDF DE RECIBO INDIVIDUAL
+// ============================================================
+function generarPDF(itemStr) {
+    try {
+        const item = JSON.parse(itemStr);
+        document.getElementById('loadingOverlay').classList.add('show');
+        document.getElementById('p_recibo').innerText = item.num_recibo || '000000';
+        document.getElementById('p_cliente').innerText = item.cliente || '';
+        document.getElementById('p_ci').innerText = item.ci || '';
+        document.getElementById('p_direccion').innerText = item.direccion || '-';
+        document.getElementById('p_equipo').innerText = item.equipo || '-';
+        document.getElementById('p_marca').innerText = item.marcaModelo || '-';
+        document.getElementById('p_imei').innerText = item.imei || '-';
+        document.getElementById('p_mes').innerText = item.mes || '-';
+        document.getElementById('p_estado').innerText = item.estadoCuota || '-';
+        document.getElementById('p_monto').innerText = item.cuota || '0';
+        document.getElementById('p_literal').innerText = item.montoLiteral || '-';
+        document.getElementById('p_obs').innerText = item.observaciones || '-';
+        const fecha = new Date(item.fecha);
+        const dia = fecha.getDate(), mes = fecha.getMonth()+1, anio = fecha.getFullYear();
+        let horas = fecha.getHours();
+        const minutos = String(fecha.getMinutes()).padStart(2,'0');
+        const segundos = String(fecha.getSeconds()).padStart(2,'0');
+        const ampm = horas >= 12 ? 'p. m.' : 'a. m.';
+        horas = horas % 12 || 12;
+        document.getElementById('p_fecha').innerText = `${dia}/${mes}/${anio}, ${horas}:${minutos}:${segundos} ${ampm}`;
+
+        const elemento = document.getElementById('reciboCartaPDF');
+        setTimeout(() => {
+            html2canvas(elemento, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', width: 750, height: elemento.scrollHeight, windowHeight: elemento.scrollHeight, logging: false })
+                .then(canvas => {
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF({ unit: 'mm', format: 'letter', orientation: 'portrait' });
+                    const imgWidth = 210, pageHeight = 297;
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                    let heightLeft = imgHeight, position = 0;
+                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                    while (heightLeft > 0) {
+                        position = heightLeft - imgHeight;
+                        pdf.addPage();
+                        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pageHeight;
+                    }
+                    pdf.save(`Recibo_${item.num_recibo || '000000'}_${(item.cliente || '').replace(/\s+/g, '_')}.pdf`);
+                    document.getElementById('loadingOverlay').classList.remove('show');
+                })
+                .catch(error => {
+                    console.error('Error en html2canvas:', error);
+                    alert('Error al generar el PDF.');
+                    document.getElementById('loadingOverlay').classList.remove('show');
+                });
+        }, 500);
+    } catch (e) {
+        console.error('Error:', e);
+        alert('Error al procesar los datos del recibo.');
+        document.getElementById('loadingOverlay').classList.remove('show');
+    }
+}
+
+function enviarWhatsApp(itemStr) {
+    try {
+        const item = JSON.parse(itemStr);
+        const texto = `*INTEGRACIÓN TECNOLÓGICA - COMPROBANTE DE PAGO*%0A` +
+            `*Recibo N°:* ${item.num_recibo || '000000'}%0A` +
+            `*Cliente:* ${item.cliente || ''}%0A` +
+            `*C.I.:* ${item.ci || ''}%0A` +
+            `*Monto Pagado:* ${item.cuota || 0} Bs.%0A` +
+            `*Mes:* ${item.mes || '-'}%0A` +
+            `*Estado:* ${item.estadoCuota || '-'}%0A` +
+            `*Fecha:* ${new Date(item.fecha).toLocaleDateString()}%0A%0A` +
+            `_¡Muchas gracias por su pago!_`;
+        window.open(`https://api.whatsapp.com/send?text=${texto}`, '_blank');
+    } catch (e) {
+        console.error('Error:', e);
+        alert('Error al enviar mensaje de WhatsApp.');
+    }
+}
+
+// Cerrar modales al hacer clic fuera
+document.querySelectorAll('.modal').forEach(modal => {
+    modal.addEventListener('click', function(e) {
+        if (e.target === this) this.style.display = 'none';
+    });
+});
     </script>
 </body>
 </html>

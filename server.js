@@ -1,5 +1,7 @@
 // server.js
-require('dotenv').config();
+require('dotenv').config({ path: './.env' });  // ruta explícita
+console.log('SUPABASE_URL:', process.env.SUPABASE_URL);
+console.log('SUPABASE_KEY:', process.env.SUPABASE_KEY ? '✅ existe' : '❌ no existe');
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -13,8 +15,9 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ============================================================
-// MIDDLEWARE DE AUTENTICACIÓN
+// MIDDLEWARE DE AUTENTICACIÓN Y ROLES
 // ============================================================
+
 async function authenticate(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -26,7 +29,15 @@ async function authenticate(req, res, next) {
         if (error || !user) {
             return res.status(401).json({ error: 'Token inválido' });
         }
-        req.user = user;
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+        if (profileError || !profile) {
+            return res.status(403).json({ error: 'Usuario sin rol asignado' });
+        }
+        req.user = { ...user, role: profile.role };
         next();
     } catch (err) {
         console.error('Error verificando token:', err);
@@ -34,23 +45,72 @@ async function authenticate(req, res, next) {
     }
 }
 
-// Proteger rutas
-app.use('/buscar-cliente', authenticate);
-app.use('/cliente-productos', authenticate);
-app.use('/siguiente-recibo', authenticate);
-app.use('/guardar-recibo', authenticate);
-app.use('/historial', authenticate);
-app.use('/agregar-cliente', authenticate);
-app.use('/eliminar-cliente', authenticate);
-app.use('/reactivar-cliente', authenticate);
-app.use('/todas-cobranzas', authenticate);
-app.use('/todos-clientes', authenticate);
-app.use('/cobranza', authenticate);
-app.use('/deudores', authenticate);
+function authorize(roles = []) {
+    return (req, res, next) => {
+        if (!req.user || !roles.includes(req.user.role)) {
+            return res.status(403).json({ error: 'Acceso denegado' });
+        }
+        next();
+    };
+}
 
 // ============================================================
-// HELPERS
+// HELPERS DE CÁLCULO DE SALDOS
 // ============================================================
+
+async function getCapitalDisponible() {
+    const { data: aportes, error: errAportes } = await supabase
+        .from('capital_aportes')
+        .select('monto');
+    if (errAportes) throw errAportes;
+    const totalAportes = aportes.reduce((s, r) => s + parseFloat(r.monto), 0);
+
+    const { data: productosCap, error: errProdCap } = await supabase
+        .from('productos')
+        .select('capital_utilizado')
+        .eq('origen_capital', 'Capital Abonado');
+    if (errProdCap) throw errProdCap;
+    const totalUsado = productosCap.reduce((s, r) => s + parseFloat(r.capital_utilizado || 0), 0);
+
+    return totalAportes - totalUsado;
+}
+
+async function getGananciaDisponible() {
+    const { data: productos, error: errProd } = await supabase
+        .from('productos')
+        .select('ganancia, capital_utilizado, origen_capital');
+    if (errProd) throw errProd;
+
+    let gananciasTotales = 0;
+    let usadoReinversion = 0;
+    productos.forEach(prod => {
+        gananciasTotales += parseFloat(prod.ganancia || 0);
+        if (prod.origen_capital === 'Reinversion') {
+            usadoReinversion += parseFloat(prod.capital_utilizado || 0);
+        }
+    });
+
+    const { data: retiros, error: errRetiros } = await supabase
+        .from('retiros_ganancias')
+        .select('monto');
+    if (errRetiros) throw errRetiros;
+    const totalRetirado = retiros.reduce((s, r) => s + parseFloat(r.monto), 0);
+
+    return gananciasTotales - usadoReinversion - totalRetirado;
+}
+
+// ============================================================
+// RUTAS PÚBLICAS
+// ============================================================
+
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// ============================================================
+// HELPERS DE RESPUESTA
+// ============================================================
+
 const mapearProducto = (p) => ({
     id: p.id,
     ci: p.ci,
@@ -64,7 +124,11 @@ const mapearProducto = (p) => ({
     fechaFin: p.fecha_fin,
     cuotaMonto: p.cuota_monto,
     montoTotal: p.monto_total,
-    activo: p.activo
+    activo: p.activo,
+    precioCostoBruto: p.precio_costo_bruto,
+    ganancia: p.ganancia,
+    origenCapital: p.origen_capital,
+    capitalUtilizado: p.capital_utilizado
 });
 
 const mapearCobranza = (c) => ({
@@ -85,15 +149,13 @@ const mapearCobranza = (c) => ({
 });
 
 // ============================================================
-// RUTAS
+// RUTAS EXISTENTES (protegidas)
 // ============================================================
 
-// Buscar cliente por CI o nombre
-app.get('/buscar-cliente', authenticate, async (req, res) => {
+app.get('/buscar-cliente', authenticate, authorize(['SUPER_USUARIO', 'USUARIO']), async (req, res) => {
     const { ci, nombre } = req.query;
     let query = supabase.from('productos').select('*').eq('activo', true);
     if (ci) {
-        // Validar que CI sea numérico
         if (isNaN(ci.trim())) {
             return res.status(400).json({ error: 'El CI debe ser numérico' });
         }
@@ -111,8 +173,7 @@ app.get('/buscar-cliente', authenticate, async (req, res) => {
     res.json(data.map(mapearProducto));
 });
 
-// Todos los productos de un cliente (activos e inactivos)
-app.get('/cliente-productos/:ci', authenticate, async (req, res) => {
+app.get('/cliente-productos/:ci', authenticate, authorize(['SUPER_USUARIO', 'USUARIO']), async (req, res) => {
     const { ci } = req.params;
     const { data, error } = await supabase
         .from('productos')
@@ -122,8 +183,7 @@ app.get('/cliente-productos/:ci', authenticate, async (req, res) => {
     res.json(data.map(mapearProducto));
 });
 
-// Siguiente número de recibo
-app.get('/siguiente-recibo', authenticate, async (req, res) => {
+app.get('/siguiente-recibo', authenticate, authorize(['SUPER_USUARIO', 'USUARIO']), async (req, res) => {
     const { data, error } = await supabase
         .from('cobranzas')
         .select('num_recibo')
@@ -137,10 +197,8 @@ app.get('/siguiente-recibo', authenticate, async (req, res) => {
     res.json({ siguiente });
 });
 
-// Guardar recibo
-app.post('/guardar-recibo', authenticate, async (req, res) => {
+app.post('/guardar-recibo', authenticate, authorize(['SUPER_USUARIO', 'USUARIO']), async (req, res) => {
     const p = req.body;
-    // Validar que CI sea numérico
     if (isNaN(p.ci)) {
         return res.status(400).json({ error: 'El CI debe ser numérico' });
     }
@@ -170,8 +228,7 @@ app.post('/guardar-recibo', authenticate, async (req, res) => {
     res.json({ mensaje: '✅ Pago registrado exitosamente.', data });
 });
 
-// Historial por CI
-app.get('/historial/:ci', authenticate, async (req, res) => {
+app.get('/historial/:ci', authenticate, authorize(['SUPER_USUARIO', 'USUARIO']), async (req, res) => {
     const ci = req.params.ci.trim();
     const { data, error } = await supabase
         .from('cobranzas')
@@ -182,13 +239,37 @@ app.get('/historial/:ci', authenticate, async (req, res) => {
     res.json(data.map(mapearCobranza));
 });
 
-// Agregar nuevo producto (cliente existente o nuevo)
-app.post('/agregar-cliente', authenticate, async (req, res) => {
+app.post('/agregar-cliente', authenticate, authorize(['SUPER_USUARIO']), async (req, res) => {
     const p = req.body;
-    // Validar CI numérico
     if (isNaN(p.ci) || p.ci.trim() === '') {
         return res.status(400).json({ error: 'El CI debe ser un número válido' });
     }
+    if (!p.precioCostoBruto || isNaN(p.precioCostoBruto) || parseFloat(p.precioCostoBruto) <= 0) {
+        return res.status(400).json({ error: 'El precio costo bruto es obligatorio y debe ser mayor a 0.' });
+    }
+    if (!p.origenCapital || !['Capital Abonado', 'Reinversion'].includes(p.origenCapital)) {
+        return res.status(400).json({ error: 'Debe seleccionar un origen de capital válido.' });
+    }
+    const montoTotal = parseFloat(p.montoTotal) || 0;
+    const costoBruto = parseFloat(p.precioCostoBruto) || 0;
+    if (montoTotal <= costoBruto) {
+        return res.status(400).json({ error: 'El monto total a pagar debe ser mayor que el costo bruto para generar ganancia.' });
+    }
+    const ganancia = montoTotal - costoBruto;
+
+    let capitalUtilizado = costoBruto;
+    if (p.origenCapital === 'Capital Abonado') {
+        const capitalDisponible = await getCapitalDisponible();
+        if (capitalDisponible < costoBruto) {
+            return res.status(400).json({ error: 'No tienes suficiente capital disponible. Registra un nuevo aporte de capital antes de realizar esta operación.' });
+        }
+    } else if (p.origenCapital === 'Reinversion') {
+        const gananciaDisponible = await getGananciaDisponible();
+        if (gananciaDisponible < costoBruto) {
+            return res.status(400).json({ error: 'No hay suficientes ganancias disponibles para reinvertir.' });
+        }
+    }
+
     const nuevoProducto = {
         id: Date.now(),
         ci: p.ci,
@@ -201,20 +282,25 @@ app.post('/agregar-cliente', authenticate, async (req, res) => {
         fecha_inicio: p.fechaInicio || null,
         fecha_fin: p.fechaFin || null,
         cuota_monto: parseFloat(p.cuotaMonto) || 0,
-        monto_total: parseFloat(p.montoTotal) || 0,
+        monto_total: montoTotal,
         activo: true,
-        fecha_registro: new Date().toISOString()
+        fecha_registro: new Date().toISOString(),
+        precio_costo_bruto: costoBruto,
+        ganancia: ganancia,
+        origen_capital: p.origenCapital,
+        capital_utilizado: capitalUtilizado
     };
+
     const { error } = await supabase.from('productos').insert([nuevoProducto]);
     if (error) return res.status(500).json({ error: error.message });
+
     res.json({
         mensaje: '✅ Cliente/Producto registrado exitosamente.',
         producto: mapearProducto(nuevoProducto)
     });
 });
 
-// Eliminar producto (soft delete)
-app.delete('/eliminar-cliente/:id', authenticate, async (req, res) => {
+app.delete('/eliminar-cliente/:id', authenticate, authorize(['SUPER_USUARIO']), async (req, res) => {
     const id = parseInt(req.params.id);
     const { error } = await supabase
         .from('productos')
@@ -224,8 +310,7 @@ app.delete('/eliminar-cliente/:id', authenticate, async (req, res) => {
     res.json({ mensaje: '✅ Producto marcado como inactivo.' });
 });
 
-// Reactivar producto
-app.put('/reactivar-cliente/:id', authenticate, async (req, res) => {
+app.put('/reactivar-cliente/:id', authenticate, authorize(['SUPER_USUARIO']), async (req, res) => {
     const id = parseInt(req.params.id);
     const { error } = await supabase
         .from('productos')
@@ -235,8 +320,7 @@ app.put('/reactivar-cliente/:id', authenticate, async (req, res) => {
     res.json({ mensaje: '✅ Producto reactivado exitosamente.' });
 });
 
-// Todas las cobranzas (reporte)
-app.get('/todas-cobranzas', authenticate, async (req, res) => {
+app.get('/todas-cobranzas', authenticate, authorize(['SUPER_USUARIO', 'USUARIO']), async (req, res) => {
     const { data, error } = await supabase
         .from('cobranzas')
         .select('*')
@@ -245,8 +329,7 @@ app.get('/todas-cobranzas', authenticate, async (req, res) => {
     res.json(data.map(mapearCobranza));
 });
 
-// Todos los clientes
-app.get('/todos-clientes', authenticate, async (req, res) => {
+app.get('/todos-clientes', authenticate, authorize(['SUPER_USUARIO', 'USUARIO']), async (req, res) => {
     const { data, error } = await supabase
         .from('productos')
         .select('*')
@@ -255,8 +338,7 @@ app.get('/todos-clientes', authenticate, async (req, res) => {
     res.json(data.map(mapearProducto));
 });
 
-// Eliminar cobranza (solo del día actual)
-app.delete('/cobranza/:id', authenticate, async (req, res) => {
+app.delete('/cobranza/:id', authenticate, authorize(['SUPER_USUARIO', 'USUARIO']), async (req, res) => {
     const id = parseInt(req.params.id);
     const { data: cobranza, error: getError } = await supabase
         .from('cobranzas')
@@ -281,8 +363,7 @@ app.delete('/cobranza/:id', authenticate, async (req, res) => {
     res.json({ mensaje: 'Cobranza eliminada correctamente' });
 });
 
-// Deudores del mes
-app.get('/deudores', authenticate, async (req, res) => {
+app.get('/deudores', authenticate, authorize(['SUPER_USUARIO', 'USUARIO']), async (req, res) => {
     const { mes, anio } = req.query;
     let year = parseInt(anio) || new Date().getFullYear();
     let month = parseInt(mes) || (new Date().getMonth() + 1);
@@ -311,6 +392,219 @@ app.get('/deudores', authenticate, async (req, res) => {
         .map(mapearProducto);
     res.json(deudores);
 });
+
+// ============================================================
+// NUEVAS RUTAS: PERFIL, CAPITAL, RETIROS
+// ============================================================
+
+app.get('/perfil', authenticate, async (req, res) => {
+    res.json({ role: req.user.role, email: req.user.email });
+});
+
+app.get('/resumen-financiero', authenticate, authorize(['SUPER_USUARIO', 'USUARIO']), async (req, res) => {
+    try {
+        const { data: aportes, error: errAportes } = await supabase
+            .from('capital_aportes')
+            .select('monto');
+        if (errAportes) throw errAportes;
+        const capitalTotal = aportes.reduce((s, r) => s + parseFloat(r.monto), 0);
+
+        const capitalDisponible = await getCapitalDisponible();
+
+        const { data: productos, error: errProd } = await supabase
+            .from('productos')
+            .select('ganancia');
+        if (errProd) throw errProd;
+        const gananciaTotal = productos.reduce((s, r) => s + parseFloat(r.ganancia || 0), 0);
+
+        const { data: prodReinv, error: errReinv } = await supabase
+            .from('productos')
+            .select('capital_utilizado')
+            .eq('origen_capital', 'Reinversion');
+        if (errReinv) throw errReinv;
+        const totalReinvertido = prodReinv.reduce((s, r) => s + parseFloat(r.capital_utilizado || 0), 0);
+
+        const gananciaDisponible = await getGananciaDisponible();
+
+        const { data: retiros, error: errRetiros } = await supabase
+            .from('retiros_ganancias')
+            .select('monto');
+        if (errRetiros) throw errRetiros;
+        const totalRetirado = retiros.reduce((s, r) => s + parseFloat(r.monto), 0);
+
+        res.json({
+            capitalTotal,
+            capitalDisponible,
+            gananciaTotal,
+            totalReinvertido,
+            gananciaDisponible,
+            totalRetirado
+        });
+    } catch (error) {
+        console.error('Error en resumen financiero:', error);
+        res.status(500).json({ error: 'Error al obtener resumen financiero' });
+    }
+});
+
+app.post('/capital/aporte', authenticate, authorize(['SUPER_USUARIO']), async (req, res) => {
+    const { inversionista, monto, fecha, observacion } = req.body;
+    if (!inversionista || !monto || isNaN(monto) || parseFloat(monto) <= 0 || !fecha) {
+        return res.status(400).json({ error: 'Todos los campos son obligatorios y monto debe ser positivo.' });
+    }
+    const nuevoAporte = {
+        inversionista: inversionista.trim(),
+        monto: parseFloat(monto),
+        fecha: fecha,
+        observacion: observacion || '',
+        created_at: new Date().toISOString()
+    };
+    const { data, error } = await supabase
+        .from('capital_aportes')
+        .insert([nuevoAporte])
+        .select();
+    if (error) {
+        console.error('Error al insertar aporte:', error);
+        return res.status(500).json({ error: error.message });
+    }
+    res.json({ mensaje: '✅ Aporte de capital registrado exitosamente.', aporte: data[0] });
+});
+
+app.get('/capital/aportes', authenticate, authorize(['SUPER_USUARIO', 'USUARIO']), async (req, res) => {
+    const { data, error } = await supabase
+        .from('capital_aportes')
+        .select('*')
+        .order('fecha', { ascending: false });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+});
+
+app.get('/retiros', authenticate, authorize(['SUPER_USUARIO', 'USUARIO']), async (req, res) => {
+    const { data, error } = await supabase
+        .from('retiros_ganancias')
+        .select('*')
+        .order('fecha', { ascending: false });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+});
+
+app.post('/retirar-ganancia', authenticate, authorize(['SUPER_USUARIO']), async (req, res) => {
+    const { persona_recibe, monto, fecha, hora, observacion } = req.body;
+    if (!persona_recibe || !monto || isNaN(monto) || parseFloat(monto) <= 0 || !fecha || !hora) {
+        return res.status(400).json({ error: 'Todos los campos son obligatorios y monto debe ser positivo.' });
+    }
+
+    const gananciaDisponible = await getGananciaDisponible();
+    if (gananciaDisponible < parseFloat(monto)) {
+        return res.status(400).json({ error: 'No hay suficientes ganancias disponibles para realizar el retiro.' });
+    }
+
+    const codigoUnico = `RET-${fecha.replace(/-/g, '')}-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
+
+    const nuevoRetiro = {
+        codigo_unico: codigoUnico,
+        persona_recibe: persona_recibe.trim(),
+        monto: parseFloat(monto),
+        fecha: fecha,
+        hora: hora,
+        observacion: observacion || '',
+        created_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+        .from('retiros_ganancias')
+        .insert([nuevoRetiro])
+        .select();
+    if (error) {
+        console.error('Error al insertar retiro:', error);
+        return res.status(500).json({ error: error.message });
+    }
+
+    const saldoAntes = gananciaDisponible;
+    const saldoDespues = saldoAntes - parseFloat(monto);
+
+    res.json({
+        mensaje: '✅ Retiro de ganancias registrado exitosamente.',
+        retiro: data[0],
+        saldoAntes,
+        saldoDespues
+    });
+});
+
+// ============================================================
+// ACTUALIZAR CLIENTE (editar producto existente)
+// ============================================================
+
+app.put('/actualizar-cliente/:id', authenticate, authorize(['SUPER_USUARIO']), async (req, res) => {
+    const id = parseInt(req.params.id);
+    const { precioCostoBruto, origenCapital, montoTotal } = req.body;
+
+    // Validaciones básicas
+    if (precioCostoBruto !== undefined && (isNaN(precioCostoBruto) || parseFloat(precioCostoBruto) < 0)) {
+        return res.status(400).json({ error: 'El precio costo bruto debe ser un número válido.' });
+    }
+    if (origenCapital && !['Capital Abonado', 'Reinversion'].includes(origenCapital)) {
+        return res.status(400).json({ error: 'Origen de capital inválido.' });
+    }
+    if (montoTotal !== undefined && (isNaN(montoTotal) || parseFloat(montoTotal) <= 0)) {
+        return res.status(400).json({ error: 'El monto total debe ser mayor a 0.' });
+    }
+
+    // Obtener el producto actual
+    const { data: productoActual, error: findError } = await supabase
+        .from('productos')
+        .select('*')
+        .eq('id', id)
+        .single();
+    if (findError || !productoActual) {
+        return res.status(404).json({ error: 'Producto no encontrado.' });
+    }
+
+    // Valores actuales
+    const costoActual = parseFloat(productoActual.precio_costo_bruto) || 0;
+    const montoActual = parseFloat(productoActual.monto_total) || 0;
+    const origenActual = productoActual.origen_capital;
+
+    // Nuevos valores (si no se envían, se mantienen los actuales)
+    const nuevoCosto = (precioCostoBruto !== undefined) ? parseFloat(precioCostoBruto) : costoActual;
+    const nuevoMonto = (montoTotal !== undefined) ? parseFloat(montoTotal) : montoActual;
+    const nuevoOrigen = origenCapital || origenActual;
+
+    // Calcular nueva ganancia
+    const nuevaGanancia = nuevoMonto - nuevoCosto;
+    if (nuevaGanancia < 0) {
+        return res.status(400).json({ error: 'El monto total debe ser mayor que el costo bruto para generar ganancia.' });
+    }
+
+    // Actualizar el producto
+    const updateData = {
+        precio_costo_bruto: nuevoCosto,
+        monto_total: nuevoMonto,
+        origen_capital: nuevoOrigen,
+        ganancia: nuevaGanancia,
+        // Actualizar capital_utilizado con el nuevo costo (si el producto aún no tiene cobranzas, es seguro)
+        // Si ya tiene cobranzas, podría ser problemático, pero lo dejamos así por simplicidad
+        capital_utilizado: nuevoCosto
+    };
+
+    const { data, error } = await supabase
+        .from('productos')
+        .update(updateData)
+        .eq('id', id)
+        .select();
+
+    if (error) {
+        console.error('Error actualizando producto:', error);
+        return res.status(500).json({ error: error.message });
+    }
+
+    res.json({
+        mensaje: '✅ Producto actualizado correctamente.',
+        producto: mapearProducto(data[0])
+    });
+});
+// ============================================================
+// INICIO DEL SERVIDOR
+// ============================================================
 
 app.listen(PORT, () => {
     console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
