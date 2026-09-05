@@ -1,7 +1,8 @@
 // server.js
-require('dotenv').config({ path: './.env' });  // ruta explícita
+require('dotenv').config({ path: './.env' });
 console.log('SUPABASE_URL:', process.env.SUPABASE_URL);
 console.log('SUPABASE_KEY:', process.env.SUPABASE_KEY ? '✅ existe' : '❌ no existe');
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -149,7 +150,7 @@ const mapearCobranza = (c) => ({
 });
 
 // ============================================================
-// RUTAS EXISTENTES (protegidas)
+// RUTAS PROTEGIDAS (requieren autenticación y roles)
 // ============================================================
 
 app.get('/buscar-cliente', authenticate, authorize(['SUPER_USUARIO', 'USUARIO']), async (req, res) => {
@@ -394,7 +395,7 @@ app.get('/deudores', authenticate, authorize(['SUPER_USUARIO', 'USUARIO']), asyn
 });
 
 // ============================================================
-// NUEVAS RUTAS: PERFIL, CAPITAL, RETIROS
+// RUTAS DE PERFIL, CAPITAL, RETIROS Y ADMINISTRACIÓN
 // ============================================================
 
 app.get('/perfil', authenticate, async (req, res) => {
@@ -531,9 +532,45 @@ app.post('/retirar-ganancia', authenticate, authorize(['SUPER_USUARIO']), async 
 });
 
 // ============================================================
+// ADMIN: CREAR NUEVO USUARIO (solo SUPER_USUARIO)
+// ============================================================
+app.post('/admin/create-user', authenticate, authorize(['SUPER_USUARIO']), async (req, res) => {
+    const { email, password, role } = req.body;
+    if (!email || !password || !role) {
+        return res.status(400).json({ error: 'Email, password y role son requeridos.' });
+    }
+    if (!['USUARIO', 'SUPER_USUARIO'].includes(role)) {
+        return res.status(400).json({ error: 'Rol inválido. Debe ser USUARIO o SUPER_USUARIO.' });
+    }
+    try {
+        // Crear usuario en Auth
+        const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true
+        });
+        if (createError) {
+            return res.status(500).json({ error: createError.message });
+        }
+        // Insertar perfil con rol
+        const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([{ id: newUser.user.id, email, role }]);
+        if (profileError) {
+            // Si falla, eliminar usuario de Auth para no dejar huérfano
+            await supabase.auth.admin.deleteUser(newUser.user.id);
+            return res.status(500).json({ error: profileError.message });
+        }
+        res.json({ mensaje: 'Usuario creado exitosamente', user: newUser.user, role });
+    } catch (error) {
+        console.error('Error al crear usuario:', error);
+        res.status(500).json({ error: 'Error interno al crear usuario' });
+    }
+});
+
+// ============================================================
 // ACTUALIZAR CLIENTE (editar producto existente)
 // ============================================================
-
 app.put('/actualizar-cliente/:id', authenticate, authorize(['SUPER_USUARIO']), async (req, res) => {
     const id = parseInt(req.params.id);
     const { precioCostoBruto, origenCapital, montoTotal } = req.body;
@@ -581,8 +618,6 @@ app.put('/actualizar-cliente/:id', authenticate, authorize(['SUPER_USUARIO']), a
         monto_total: nuevoMonto,
         origen_capital: nuevoOrigen,
         ganancia: nuevaGanancia,
-        // Actualizar capital_utilizado con el nuevo costo (si el producto aún no tiene cobranzas, es seguro)
-        // Si ya tiene cobranzas, podría ser problemático, pero lo dejamos así por simplicidad
         capital_utilizado: nuevoCosto
     };
 
@@ -602,10 +637,10 @@ app.put('/actualizar-cliente/:id', authenticate, authorize(['SUPER_USUARIO']), a
         producto: mapearProducto(data[0])
     });
 });
+
 // ============================================================
 // INICIO DEL SERVIDOR
 // ============================================================
-
 app.listen(PORT, () => {
     console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
 });
