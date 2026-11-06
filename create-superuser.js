@@ -1,121 +1,76 @@
-// create-superuser.js
-require('dotenv').config(); // Carga el archivo .env
-
+// create-superuser.js - v2.1
+require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
 const readline = require('readline');
 
-// Lee las variables de entorno con diferentes nombres posibles
-const SUPABASE_URL = process.env.SUPABASE_URL;
-// Busca la clave de servicio en distintas variables
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.service_role;
-
-if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-    console.error('❌ Faltan variables de entorno:');
-    console.error('   Asegúrate de tener definidas en .env:');
-    console.error('   - SUPABASE_URL');
-    console.error('   - SUPABASE_SERVICE_ROLE_KEY (o service_role)');
-    console.error('   Ejemplo:');
-    console.error('   SUPABASE_URL=https://tu-proyecto.supabase.co');
-    console.error('   SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJ...');
+const URL = process.env.SUPABASE_URL;
+const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!URL || !KEY) {
+    console.error('❌ Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en .env');
     process.exit(1);
 }
+const supabase = createClient(URL, KEY);
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+const pregunta = (q) => new Promise((res) => rl.question(q, (r) => res(r.trim())));
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
-
-function pregunta(pregunta) {
-    return new Promise((resolve) => {
-        rl.question(pregunta, (respuesta) => resolve(respuesta.trim()));
-    });
+async function findUserByEmail(email) {
+    let page = 1, perPage = 100;
+    while (true) {
+        const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
+        if (error) throw error;
+        const found = data.users.find(u => u.email === email);
+        if (found) return found;
+        if (data.users.length < perPage) return null;
+        page++;
+    }
 }
 
 async function main() {
     console.log('\n🔐 Creación / Actualización de SUPER USUARIO');
     console.log('============================================\n');
-
-    const email = 'renetiraque1@gmail.com';
-
-    // 1. Verificar si el usuario ya existe en auth.users
-    console.log(`🔍 Buscando usuario con email: ${email} ...`);
-    const { data: users, error: searchError } = await supabase.auth.admin.listUsers();
-    if (searchError) {
-        console.error('❌ Error al listar usuarios:', searchError.message);
+    const email = process.env.SUPERUSER_EMAIL || process.argv[2];
+    if (!email || !email.includes('@')) {
+        console.error('❌ Uso: node create-superuser.js tu@email.com');
+        console.error('   O define SUPERUSER_EMAIL en .env');
         process.exit(1);
     }
-
-    let user = users.users.find(u => u.email === email);
+    console.log(`🔍 Buscando: ${email}`);
+    let user = await findUserByEmail(email);
     let userId;
-
     if (user) {
-        console.log(`✅ Usuario encontrado (ID: ${user.id})`);
+        console.log(`✅ Encontrado (ID: ${user.id})`);
         userId = user.id;
     } else {
-        console.log('⚠️  El usuario no existe en Auth. Se creará una nueva cuenta.');
-        const password = await pregunta('🔑 Ingresa la contraseña para el nuevo usuario (mínimo 6 caracteres): ');
-        if (password.length < 6) {
-            console.error('❌ La contraseña debe tener al menos 6 caracteres.');
+        console.log('⚠️  No existe, creando cuenta nueva...');
+        const pw = process.env.SUPERUSER_PASSWORD || await pregunta('🔑 Contraseña (mín. 6): ');
+        if (pw.length < 6) {
+            console.error('❌ Mínimo 6 caracteres');
             process.exit(1);
         }
-
-        const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-            email,
-            password,
-            email_confirm: true
+        const { data: nu, error } = await supabase.auth.admin.createUser({
+            email, password: pw, email_confirm: true
         });
-        if (createError) {
-            console.error('❌ Error al crear usuario:', createError.message);
-            process.exit(1);
-        }
-        console.log(`✅ Usuario creado con ID: ${newUser.user.id}`);
-        userId = newUser.user.id;
+        if (error) { console.error('❌', error.message); process.exit(1); }
+        console.log(`✅ Creado (ID: ${nu.user.id})`);
+        userId = nu.user.id;
     }
-
-    // 2. Asignar rol SUPER_USUARIO en la tabla profiles
-    console.log(`\n📝 Asignando rol SUPER_USUARIO al perfil de ${email} ...`);
-
-    const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, role')
-        .eq('id', userId)
-        .maybeSingle();
-
-    if (profileError && profileError.code !== 'PGRST116') {
-        console.error('❌ Error al consultar perfil:', profileError.message);
-        process.exit(1);
-    }
-
+    console.log('\n📝 Asignando rol SUPER_USUARIO...');
+    const { data: prof } = await supabase.from('profiles').select('id, role').eq('id', userId).maybeSingle();
     let result;
-    if (profile) {
-        result = await supabase
-            .from('profiles')
-            .update({ role: 'SUPER_USUARIO' })
-            .eq('id', userId);
-        console.log('🔄 Perfil actualizado (ya existía)');
+    if (prof) {
+        result = await supabase.from('profiles').update({ role: 'SUPER_USUARIO' }).eq('id', userId);
+        console.log('🔄 Perfil actualizado');
     } else {
-        result = await supabase
-            .from('profiles')
-            .insert([{ id: userId, email, role: 'SUPER_USUARIO' }]);
+        result = await supabase.from('profiles').insert([{ id: userId, email, role: 'SUPER_USUARIO' }]);
         console.log('✅ Perfil creado');
     }
-
     if (result.error) {
-        console.error('❌ Error al guardar perfil:', result.error.message);
+        if (!prof) await supabase.auth.admin.deleteUser(userId).catch(() => {});
+        console.error('❌', result.error.message);
         process.exit(1);
     }
-
-    console.log('\n🎉 ¡SUPER USUARIO configurado correctamente!');
-    console.log(`   Email: ${email}`);
-    console.log('   Rol: SUPER_USUARIO');
-    console.log('\nAhora puedes iniciar sesión en el sistema con todas las capacidades de administrador.\n');
-
+    console.log(`\n🎉 SUPER USUARIO configurado: ${email}\n`);
     rl.close();
 }
 
-main().catch(err => {
-    console.error('Error inesperado:', err);
-    process.exit(1);
-});
+main().catch(e => { console.error('Error:', e); process.exit(1); });

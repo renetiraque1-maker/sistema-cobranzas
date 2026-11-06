@@ -7,3 +7,5 @@ node_modules/
 # Archivos del sistema
 .DS_Store
 *.log
+# Ignorar backups locales
+_backup_*
